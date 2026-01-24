@@ -59,9 +59,24 @@
   function renderRecipes() {
     const ul = document.getElementById('recipeList');
     ul.innerHTML = '';
-    recipes.forEach(r => {
+    recipes.forEach((r, index) => {
       const li = document.createElement('li');
-      li.textContent = `${r.name} ${r.freezer ? '❄️' : ''}`;
+      li.style.cursor = 'pointer';
+      li.innerHTML = `<strong>${r.name}</strong> ${r.freezer ? '❄️' : ''}`;
+
+      const details = document.createElement('div');
+      details.style.display = 'none';
+      details.style.marginLeft = '10px';
+      details.innerHTML = `<em>Zutaten:</em><ul>${r.ingredients.map(i => `<li>${i}</li>`).join('')}</ul>`;
+
+      li.onclick = () => {
+        details.style.display = details.style.display === 'none' ? 'block' : 'none';
+      };
+
+      ul.appendChild(li);
+      ul.appendChild(details);
+    });
+  } ${r.freezer ? '❄️' : ''}`;
       ul.appendChild(li);
     });
   }
@@ -90,4 +105,4 @@
 
   renderRecipes();
 </script></body>
-</html>
+</html> 
