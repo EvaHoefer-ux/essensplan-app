@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unser Essensplan</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 16px; background:#f6f7f5; }
+    h1 { font-size: 1.4rem; }
+    nav { display: flex; gap: 8px; margin-bottom: 16px; }
+    button { padding: 10px; border-radius: 8px; border: none; background:#4caf50; color:white; }
+    section { display:none; }
+    section.active { display:block; }
+    ul { padding-left: 18px; }
+    li { margin-bottom: 6px; }
+    input { padding:6px; }
+  </style>
+</head>
+<body><h1>🍽️ Unser Essensplan</h1><nav>
+  <button onclick="show('plan')">Plan</button>
+  <button onclick="show('shopping')">Einkauf</button>
+  <button onclick="show('freezer')">Gefrier</button>
+  <button onclick="show('recipes')">Rezepte</button>
+</nav><section id="plan" class="active">
+  <h2>🗓️ Wochenplan</h2>
+  <p>(Hier kommen bald deine Gerichte rein)</p>
+</section><section id="shopping">
+  <h2>🛒 Einkaufsliste</h2>
+  <input id="itemInput" placeholder="Artikel hinzufügen" />
+  <button onclick="addItem()">+</button>
+  <ul id="shoppingList"></ul>
+</section><section id="freezer">
+  <h2>❄️ Gefrierbestand</h2>
+  <ul>
+    <li>Linseneintopf – 3 Portionen</li>
+  </ul>
+</section><section id="recipes">
+  <h2>📖 Rezepte</h2>
+  <ul id="recipeList"></ul>
+  <h3>➕ Neues Rezept</h3>
+  <input id="recipeName" placeholder="Rezeptname" />
+  <input id="recipeIngredients" placeholder="Zutaten (kommagetrennt)" />
+  <label><input type="checkbox" id="recipeFreezer" /> Gefriergeeignet</label><br><br>
+  <button onclick="addRecipe()">Rezept speichern</button>
+</section><script>
+  function show(id) {
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // ---------------- Rezepte ----------------
+  let recipes = [
+    { name: 'Lasagne', ingredients: ['Hackfleisch','Tomaten','Lasagneplatten','Käse'], freezer: true },
+    { name: 'Linseneintopf', ingredients: ['Linsen','Kartoffeln','Karotten','Lauch','Zwiebel'], freezer: true },
+    { name: 'Gemüsecurry mit Kokosmilch', ingredients: ['Karotten','Paprika','Pilze','Kokosmilch'], freezer: true },
+    { name: 'One-Pot-Gewürzhähnchen', ingredients: ['Hähnchen','Reis','Joghurt','Aprikosen'], freezer: true },
+    { name: 'Spaghetti Carbonara', ingredients: ['Spaghetti','Ei','Speck','Pecorino'], freezer: false }
+  ];
+
+  function renderRecipes() {
+    const ul = document.getElementById('recipeList');
+    ul.innerHTML = '';
+    recipes.forEach(r => {
+      const li = document.createElement('li');
+      li.textContent = `${r.name} ${r.freezer ? '❄️' : ''}`;
+      ul.appendChild(li);
+    });
+  }
+
+  function addRecipe() {
+    const name = document.getElementById('recipeName').value;
+    const ingredients = document.getElementById('recipeIngredients').value.split(',').map(i => i.trim());
+    const freezer = document.getElementById('recipeFreezer').checked;
+    if (!name) return;
+    recipes.push({ name, ingredients, freezer });
+    renderRecipes();
+    document.getElementById('recipeName').value = '';
+    document.getElementById('recipeIngredients').value = '';
+    document.getElementById('recipeFreezer').checked = false;
+  }
+
+  // ---------------- Einkauf ----------------
+  function addItem() {
+    const input = document.getElementById('itemInput');
+    if (!input.value) return;
+    const li = document.createElement('li');
+    li.textContent = input.value;
+    document.getElementById('shoppingList').appendChild(li);
+    input.value = '';
+  }
+
+  renderRecipes();
+</script></body>
+</html>
