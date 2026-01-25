@@ -1,49 +1,72 @@
-<!DOCTYPE html>
-<html lang="de">
+<!DOCTYPE html><html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Rezept Test</title>
+<title>Essensplan – Rezepte</title>
 <style>
-body { font-family: Arial, sans-serif; padding: 20px; }
-li { cursor: pointer; margin: 8px 0; }
-.details { display: none; margin-left: 20px; }
+body { font-family: Arial, sans-serif; padding: 20px; background:#f7f7f7; }
+h1 { margin-bottom: 10px; }
+ul { list-style: none; padding: 0; }
+li.recipe { background: #fff; margin-bottom: 10px; padding: 12px; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.details { display: none; margin-top: 8px; padding-left: 10px; }
+.details ul { list-style: disc; padding-left: 20px; }
+.badge { font-size: 0.9em; color: #555; }
 </style>
 </head>
-<body>
+<body><h1>Rezepte</h1>
+<p>Tippe auf ein Rezept, um die Zutaten zu sehen.</p><ul id="recipeList"></ul><script>
+const recipes = [
+  {
+    name: "Lasagne",
+    freezer: true,
+    ingredients: ["Hackfleisch", "Tomaten", "Lasagneplatten", "Käse"]
+  },
+  {
+    name: "Linseneintopf",
+    freezer: true,
+    ingredients: ["Linsen", "Kartoffeln", "Karotten"]
+  },
+  {
+    name: "Gemüsecurry",
+    freezer: true,
+    ingredients: ["Paprika", "Zucchini", "Kokosmilch", "Currypaste"]
+  },
+  {
+    name: "One-Pot-Gewürzhähnchen",
+    freezer: false,
+    ingredients: ["Hähnchen", "Reis", "Gewürze"]
+  },
+  {
+    name: "Spaghetti Carbonara",
+    freezer: false,
+    ingredients: ["Spaghetti", "Eier", "Speck", "Parmesan"]
+  }
+];
 
-<h1>Rezepte</h1>
+function renderRecipes() {
+  const list = document.getElementById('recipeList');
+  list.innerHTML = '';
 
-<ul>
-  <li onclick="toggle(this)">
-    <strong>Lasagne ❄️</strong>
-    <div class="details">
-      <ul>
-        <li>Hackfleisch</li>
-        <li>Tomaten</li>
-        <li>Lasagneplatten</li>
-        <li>Käse</li>
-      </ul>
-    </div>
-  </li>
+  recipes.forEach(recipe => {
+    const li = document.createElement('li');
+    li.className = 'recipe';
 
-  <li onclick="toggle(this)">
-    <strong>Linseneintopf ❄️</strong>
-    <div class="details">
-      <ul>
-        <li>Linsen</li>
-        <li>Kartoffeln</li>
-        <li>Karotten</li>
-      </ul>
-    </div>
-  </li>
-</ul>
+    const title = document.createElement('div');
+    title.innerHTML = `<strong>${recipe.name}</strong> ${recipe.freezer ? '❄️' : ''}`;
 
-<script>
-function toggle(el) {
-  const details = el.querySelector('.details');
-  details.style.display = details.style.display === 'block' ? 'none' : 'block';
+    const details = document.createElement('div');
+    details.className = 'details';
+    details.innerHTML = `<span class="badge">Zutaten:</span><ul>${recipe.ingredients.map(i => `<li>${i}</li>`).join('')}</ul>`;
+
+    li.onclick = () => {
+      details.style.display = details.style.display === 'block' ? 'none' : 'block';
+    };
+
+    li.appendChild(title);
+    li.appendChild(details);
+    list.appendChild(li);
+  });
 }
-</script>
 
-</body>
-</html>
+renderRecipes();
+</script></body>
+</html> 
