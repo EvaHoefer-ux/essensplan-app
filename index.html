@@ -1,185 +1,58 @@
 <!DOCTYPE html><html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Essensplan – Rezepte</title>
-  <style>
-body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
-  background: #f7f7f7;
+<title>Essensplan – Stabil</title>
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; }
+h1, h2 { margin-top: 24px; }
+ul { padding-left: 0; }
+li { list-style: none; margin-bottom: 8px; }
+.recipe {
+  background: #f2f2f2;
+  padding: 10px;
+  border-radius: 6px;
 }
-
-h1, h2 {
-  margin-top: 20px;
-}
-
-ul {
-  list-style: none;
-  padding: 0;
-}
-
-li.recipe {
-  background: #fff;
-  margin-bottom: 10px;
-  padding: 12px;
-  border-radius: 8px;
+.recipe-title {
+  font-weight: bold;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  pointer-events: auto;
 }
-
-.details {
-  display: none;
-  margin-top: 8px;
-  padding-left: 10px;
-}
-
-.details ul {
-  list-style: disc;
-  padding-left: 20px;
-}
-
-/* WICHTIG: diese Listen dürfen keine Klicks abfangen */
-#mealPlan li,
-#shoppingList li {
-  cursor: default;
-}
-</style> 
+.details { display: none; margin-top: 6px; margin-left: 12px; }
+</style>
 </head>
 <body><h1>Rezepte</h1>
-<p>Tippe auf ein Rezept, um die Zutaten zu sehen.</p><h2>Wochenplan</h2>
-<p>Wähle für jeden Tag ein Gericht.</p>
-<ul id="mealPlan"></ul><h2>Einkaufsliste</h2>
-<p>Automatisch aus dem Wochenplan.</p>
-<ul id="shoppingList"></ul><h2>Rezepte</h2>
-<ul id="recipeList"></ul><script>
+<ul id="recipes"></ul><script>
 const recipes = [
   {
-    name: "Lasagne",
-    freezer: true,
-    ingredients: [
-      { name: "Hackfleisch", amount: "500 g" },
-      { name: "Tomaten", amount: "2 Dosen" },
-      { name: "Lasagneplatten", amount: "250 g" },
-      { name: "Käse", amount: "200 g" }
-    ]
+    name: 'Lasagne',
+    ingredients: ['Hackfleisch – 500 g', 'Tomaten – 2 Dosen', 'Käse – 200 g']
   },
   {
-    name: "Linseneintopf",
-    freezer: true,
-    ingredients: [
-      { name: "Linsen", amount: "300 g" },
-      { name: "Kartoffeln", amount: "500 g" },
-      { name: "Karotten", amount: "300 g" }
-    ]
-  },
-  {
-    name: "Gemüsecurry",
-    freezer: true,
-    ingredients: [
-      { name: "Paprika", amount: "2 Stück" },
-      { name: "Zucchini", amount: "1 Stück" },
-      { name: "Kokosmilch", amount: "1 Dose" },
-      { name: "Currypaste", amount: "2 EL" }
-    ]
-  },
-  {
-    name: "One-Pot-Gewürzhähnchen",
-    freezer: false,
-    ingredients: [
-      { name: "Hähnchen", amount: "600 g" },
-      { name: "Reis", amount: "250 g" },
-      { name: "Gewürze", amount: "nach Geschmack" }
-    ]
-  },
-  {
-    name: "Spaghetti Carbonara",
-    freezer: false,
-    ingredients: [
-      { name: "Spaghetti", amount: "400 g" },
-      { name: "Eier", amount: "4 Stück" },
-      { name: "Speck", amount: "150 g" },
-      { name: "Parmesan", amount: "80 g" }
-    ]
+    name: 'Linseneintopf',
+    ingredients: ['Linsen – 300 g', 'Kartoffeln – 500 g', 'Karotten – 300 g']
   }
 ];
 
-const days = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
-let mealPlan = {};
+const ul = document.getElementById('recipes');
 
-function renderMealPlan() {
-  const ul = document.getElementById('mealPlan');
-  ul.innerHTML = '';
-  days.forEach(day => {
-    const li = document.createElement('li');
-    li.className = 'recipe';
-    li.innerHTML = `<strong>${day}:</strong> ${mealPlan[day] || '– auswählen –'}`;
-    li.onclick = () => {
-      alert(day + ' wurde angeklickt');
-    };
-    ul.appendChild(li);
-  });
-}:</strong> ${mealPlan[day] || '– auswählen –'}`;
-    li.onclick = () => {
-      const choice = prompt('Welches Rezept für ' + day + '?');
-      if (choice) {
-        mealPlan[day] = choice;
-        renderMealPlan();
-      }
-    };
-    ul.appendChild(li);
-  });
-}
+recipes.forEach(r => {
+  const li = document.createElement('li');
+  li.className = 'recipe';
 
-function renderShoppingList() {
-  const ul = document.getElementById('shoppingList');
-  ul.innerHTML = '';
-  const items = {};
+  const title = document.createElement('div');
+  title.className = 'recipe-title';
+  title.textContent = r.name;
 
-  Object.values(mealPlan).forEach(meal => {
-    const recipe = recipes.find(r => r.name === meal);
-    if (!recipe) return;
-    recipe.ingredients.forEach(ing => {
-      const key = ing.name + ' – ' + ing.amount;
-      items[key] = true;
-    });
+  const details = document.createElement('div');
+  details.className = 'details';
+  details.innerHTML = '<ul>' + r.ingredients.map(i => `<li>${i}</li>`).join('') + '</ul>';
+
+  title.addEventListener('click', () => {
+    details.style.display = details.style.display === 'block' ? 'none' : 'block';
   });
 
-  Object.keys(items).forEach(item => {
-    const li = document.createElement('li');
-    li.textContent = item;
-    ul.appendChild(li);
-  });
-}
-
-function renderRecipes() {
-  const list = document.getElementById('recipeList');
-  list.innerHTML = '';
-
-  recipes.forEach(recipe => {
-    const li = document.createElement('li');
-    li.className = 'recipe';
-
-    const title = document.createElement('div');
-    title.innerHTML = `<strong>${recipe.name}</strong> ${recipe.freezer ? '❄️' : ''}`;
-
-    const details = document.createElement('div');
-    details.className = 'details';
-    details.innerHTML = `<span class="badge">Zutaten:</span><ul>${recipe.ingredients.map(i => `<li>${i.name} – ${i.amount}</li>`).join('')}</ul>`;
-
-    li.onclick = () => {
-      details.style.display = details.style.display === 'block' ? 'none' : 'block';
-    };
-
-    li.appendChild(title);
-    li.appendChild(details);
-    list.appendChild(li);
-  });
-}
-
-renderMealPlan();
-renderShoppingList();
-renderRecipes();
+  li.appendChild(title);
+  li.appendChild(details);
+  ul.appendChild(li);
+});
 </script></body>
 </html> 
-
