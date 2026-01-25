@@ -2,15 +2,49 @@
 <head>
 <meta charset="UTF-8">
 <title>Essensplan – Rezepte</title>
-<style>
-body { font-family: Arial, sans-serif; padding: 20px; background:#f7f7f7; }
-h1 { margin-bottom: 10px; }
-ul { list-style: none; padding: 0; }
-li.recipe { background: #fff; margin-bottom: 10px; padding: 12px; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-.details { display: none; margin-top: 8px; padding-left: 10px; }
-.details ul { list-style: disc; padding-left: 20px; }
-.badge { font-size: 0.9em; color: #555; }
-</style>
+  <style>
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f7f7f7;
+}
+
+h1, h2 {
+  margin-top: 20px;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li.recipe {
+  background: #fff;
+  margin-bottom: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  pointer-events: auto;
+}
+
+.details {
+  display: none;
+  margin-top: 8px;
+  padding-left: 10px;
+}
+
+.details ul {
+  list-style: disc;
+  padding-left: 20px;
+}
+
+/* WICHTIG: diese Listen dürfen keine Klicks abfangen */
+#mealPlan li,
+#shoppingList li {
+  cursor: default;
+}
+</style> 
 </head>
 <body><h1>Rezepte</h1>
 <p>Tippe auf ein Rezept, um die Zutaten zu sehen.</p><h2>Wochenplan</h2>
@@ -148,3 +182,4 @@ renderShoppingList();
 renderRecipes();
 </script></body>
 </html> 
+
