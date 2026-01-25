@@ -1,50 +1,69 @@
 <!DOCTYPE html><html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Essensplan – Stabil</title>
+<title>Essensplan – Mengen</title>
 <style>
 body { font-family: Arial, sans-serif; padding: 20px; }
-h1, h2 { margin-top: 24px; }
+h1 { margin-bottom: 16px; }
 ul { padding-left: 0; }
-li { list-style: none; margin-bottom: 8px; }
+li { list-style: none; margin-bottom: 10px; }
 .recipe {
   background: #f2f2f2;
-  padding: 10px;
+  padding: 12px;
   border-radius: 6px;
 }
 .recipe-title {
   font-weight: bold;
   cursor: pointer;
 }
-.details { display: none; margin-top: 6px; margin-left: 12px; }
+.details { display: none; margin-top: 8px; margin-left: 12px; }
+.details ul { padding-left: 16px; }
 </style>
 </head>
 <body><h1>Rezepte</h1>
 <ul id="recipes"></ul><script>
+// Rezeptdaten mit Mengen & Einheiten
 const recipes = [
   {
     name: 'Lasagne',
-    ingredients: ['Hackfleisch – 500 g', 'Tomaten – 2 Dosen', 'Käse – 200 g']
+    ingredients: [
+      { name: 'Hackfleisch', amount: 500, unit: 'g' },
+      { name: 'Tomaten', amount: 2, unit: 'Dosen' },
+      { name: 'Lasagneplatten', amount: 250, unit: 'g' },
+      { name: 'Käse', amount: 200, unit: 'g' }
+    ]
   },
   {
     name: 'Linseneintopf',
-    ingredients: ['Linsen – 300 g', 'Kartoffeln – 500 g', 'Karotten – 300 g']
+    ingredients: [
+      { name: 'Linsen', amount: 300, unit: 'g' },
+      { name: 'Kartoffeln', amount: 500, unit: 'g' },
+      { name: 'Karotten', amount: 300, unit: 'g' }
+    ]
   }
 ];
 
 const ul = document.getElementById('recipes');
 
-recipes.forEach(r => {
+recipes.forEach(recipe => {
   const li = document.createElement('li');
   li.className = 'recipe';
 
   const title = document.createElement('div');
   title.className = 'recipe-title';
-  title.textContent = r.name;
+  title.textContent = recipe.name;
 
   const details = document.createElement('div');
   details.className = 'details';
-  details.innerHTML = '<ul>' + r.ingredients.map(i => `<li>${i}</li>`).join('') + '</ul>';
+
+  const ingList = document.createElement('ul');
+  recipe.ingredients.forEach(ing => {
+    const ingLi = document.createElement('li');
+    ingLi.textContent = `${ing.name} – ${ing.amount} ${ing.unit}`;
+    ingList.appendChild(ingLi);
+  });
+
+  details.appendChild(ingList);
 
   title.addEventListener('click', () => {
     details.style.display = details.style.display === 'block' ? 'none' : 'block';
