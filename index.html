@@ -39,4 +39,28 @@ function renderRecipes() {
     details.className = 'details';
     details.innerHTML = '<ul>' + r.ingredients.map(i => `<li>${i}</li>`).join('') + '</ul>';
 
+    title.addEventListener('click', () => {
+      details.style.display = details.style.display === 'block' ? 'none' : 'block';
+    });
 
+    li.appendChild(title);
+    li.appendChild(details);
+    ul.appendChild(li);
+  });
+}
+
+// Mini-Funktion: Rezeptnamen hinzufügen
+document.getElementById('addRecipeBtn').addEventListener('click', () => {
+  alert('Button wurde geklickt');
+  const nameInput = document.getElementById('newRecipeName');
+  const name = nameInput.value.trim();
+  if (!name) return;
+
+  recipes.push({ name, ingredients: ['(noch keine Zutaten)'] });
+  nameInput.value = '';
+  renderRecipes();
+});
+
+renderRecipes();
+</script></body>
+</html> 
