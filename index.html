@@ -18,27 +18,50 @@ const recipes = [
   {
     name: "Lasagne",
     freezer: true,
-    ingredients: ["Hackfleisch", "Tomaten", "Lasagneplatten", "Käse"]
+    ingredients: [
+      { name: "Hackfleisch", amount: "500 g" },
+      { name: "Tomaten", amount: "2 Dosen" },
+      { name: "Lasagneplatten", amount: "250 g" },
+      { name: "Käse", amount: "200 g" }
+    ]
   },
   {
     name: "Linseneintopf",
     freezer: true,
-    ingredients: ["Linsen", "Kartoffeln", "Karotten"]
+    ingredients: [
+      { name: "Linsen", amount: "300 g" },
+      { name: "Kartoffeln", amount: "500 g" },
+      { name: "Karotten", amount: "300 g" }
+    ]
   },
   {
     name: "Gemüsecurry",
     freezer: true,
-    ingredients: ["Paprika", "Zucchini", "Kokosmilch", "Currypaste"]
+    ingredients: [
+      { name: "Paprika", amount: "2 Stück" },
+      { name: "Zucchini", amount: "1 Stück" },
+      { name: "Kokosmilch", amount: "1 Dose" },
+      { name: "Currypaste", amount: "2 EL" }
+    ]
   },
   {
     name: "One-Pot-Gewürzhähnchen",
     freezer: false,
-    ingredients: ["Hähnchen", "Reis", "Gewürze"]
+    ingredients: [
+      { name: "Hähnchen", amount: "600 g" },
+      { name: "Reis", amount: "250 g" },
+      { name: "Gewürze", amount: "nach Geschmack" }
+    ]
   },
   {
     name: "Spaghetti Carbonara",
     freezer: false,
-    ingredients: ["Spaghetti", "Eier", "Speck", "Parmesan"]
+    ingredients: [
+      { name: "Spaghetti", amount: "400 g" },
+      { name: "Eier", amount: "4 Stück" },
+      { name: "Speck", amount: "150 g" },
+      { name: "Parmesan", amount: "80 g" }
+    ]
   }
 ];
 
@@ -55,7 +78,7 @@ function renderRecipes() {
 
     const details = document.createElement('div');
     details.className = 'details';
-    details.innerHTML = `<span class="badge">Zutaten:</span><ul>${recipe.ingredients.map(i => `<li>${i}</li>`).join('')}</ul>`;
+    details.innerHTML = `<span class="badge">Zutaten:</span><ul>${recipe.ingredients.map(i => `<li>${i.name} – ${i.amount}</li>`).join('')}</ul>`;
 
     li.onclick = () => {
       details.style.display = details.style.display === 'block' ? 'none' : 'block';
