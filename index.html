@@ -13,7 +13,10 @@ li.recipe { background: #fff; margin-bottom: 10px; padding: 12px; border-radius:
 </style>
 </head>
 <body><h1>Rezepte</h1>
-<p>Tippe auf ein Rezept, um die Zutaten zu sehen.</p><ul id="recipeList"></ul><script>
+<p>Tippe auf ein Rezept, um die Zutaten zu sehen.</p><h2>Wochenplan</h2>
+<p>Wähle für jeden Tag ein Gericht.</p>
+<ul id="mealPlan"></ul><h2>Rezepte</h2>
+<ul id="recipeList"></ul><script>
 const recipes = [
   {
     name: "Lasagne",
@@ -65,6 +68,27 @@ const recipes = [
   }
 ];
 
+const days = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+let mealPlan = {};
+
+function renderMealPlan() {
+  const ul = document.getElementById('mealPlan');
+  ul.innerHTML = '';
+  days.forEach(day => {
+    const li = document.createElement('li');
+    li.className = 'recipe';
+    li.innerHTML = `<strong>${day}:</strong> ${mealPlan[day] || '– auswählen –'}`;
+    li.onclick = () => {
+      const choice = prompt('Welches Rezept für ' + day + '?');
+      if (choice) {
+        mealPlan[day] = choice;
+        renderMealPlan();
+      }
+    };
+    ul.appendChild(li);
+  });
+}
+
 function renderRecipes() {
   const list = document.getElementById('recipeList');
   list.innerHTML = '';
@@ -90,6 +114,7 @@ function renderRecipes() {
   });
 }
 
+renderMealPlan();
 renderRecipes();
 </script></body>
 </html> 
