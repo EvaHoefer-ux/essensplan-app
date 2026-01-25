@@ -1,10 +1,10 @@
 <!DOCTYPE html><html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Essensplan – Rezepte hinzufügen</title>
+<title>Essensplan – Rezepte</title>
 <style>
 body { font-family: Arial, sans-serif; padding: 20px; }
-h1 { margin-bottom: 12px; }
+h1, h2 { margin-bottom: 12px; }
 input, button { padding: 6px; font-size: 14px; }
 button { margin-left: 6px; cursor: pointer; }
 ul { padding-left: 0; }
@@ -14,11 +14,11 @@ li { list-style: none; margin-bottom: 10px; }
 .details { display: none; margin-top: 8px; margin-left: 12px; }
 </style>
 </head>
-<body><h1>Rezepte</h1><h2>Neues Rezept (Test)</h2>
+<body><h1>Rezepte</h1><h2>Neues Rezept hinzufügen</h2>
 <input id="newRecipeName" placeholder="Rezeptname eingeben" />
 <button id="addRecipeBtn">Rezept hinzufügen</button><hr><ul id="recipes"></ul><script>
-// Start-Rezepte
-const recipes = [
+// Zentrale Rezeptliste
+let recipes = [
   { name: 'Lasagne', ingredients: ['Hackfleisch – 500 g', 'Tomaten – 2 Dosen'] },
   { name: 'Linseneintopf', ingredients: ['Linsen – 300 g', 'Kartoffeln – 500 g'] }
 ];
@@ -27,21 +27,22 @@ const ul = document.getElementById('recipes');
 
 function renderRecipes() {
   ul.innerHTML = '';
-  recipes.forEach(r => {
+
+  recipes.forEach(recipe => {
     const li = document.createElement('li');
     li.className = 'recipe';
 
     const title = document.createElement('div');
     title.className = 'recipe-title';
-    title.textContent = r.name;
+    title.textContent = recipe.name;
 
     const details = document.createElement('div');
     details.className = 'details';
-    details.innerHTML = '<ul>' + r.ingredients.map(i => `<li>${i}</li>`).join('') + '</ul>';
+    details.innerHTML = '<ul>' + recipe.ingredients.map(i => `<li>${i}</li>`).join('') + '</ul>';
 
-    title.addEventListener('click', () => {
+    title.onclick = () => {
       details.style.display = details.style.display === 'block' ? 'none' : 'block';
-    });
+    };
 
     li.appendChild(title);
     li.appendChild(details);
@@ -49,18 +50,20 @@ function renderRecipes() {
   });
 }
 
-// Mini-Funktion: Rezeptnamen hinzufügen
-document.getElementById('addRecipeBtn').addEventListener('click', () => {
-  alert('Button wurde geklickt');
-  const nameInput = document.getElementById('newRecipeName');
-  const name = nameInput.value.trim();
+// Rezept hinzufügen
+document.getElementById('addRecipeBtn').onclick = () => {
+  const input = document.getElementById('newRecipeName');
+  const name = input.value.trim();
   if (!name) return;
 
-  recipes.push({ name, ingredients: ['(noch keine Zutaten)'] });
-  nameInput.value = '';
-  renderRecipes();
-});
+  // NEUES Rezept kommt IMMER OBEN rein
+  recipes.unshift({ name, ingredients: ['(noch keine Zutaten)'] });
 
+  input.value = '';
+  renderRecipes();
+};
+
+// Initial anzeigen
 renderRecipes();
 </script></body>
 </html> 
