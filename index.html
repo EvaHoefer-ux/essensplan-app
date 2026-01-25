@@ -81,12 +81,7 @@ function renderMealPlan() {
     li.className = 'recipe';
     li.innerHTML = `<strong>${day}:</strong> ${mealPlan[day] || '– auswählen –'}`;
     li.onclick = () => {
-      const choice = prompt('Welches Rezept für ' + day + '?');
-      if (choice) {
-        mealPlan[day] = choice;
-        renderMealPlan();
-        renderShoppingList();
-      }
+      alert(day + ' wurde angeklickt');
     };
     ul.appendChild(li);
   });
