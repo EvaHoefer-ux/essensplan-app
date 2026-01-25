@@ -1,1 +1,42 @@
+<!DOCTYPE html><html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Essensplan – Rezepte hinzufügen</title>
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; }
+h1 { margin-bottom: 12px; }
+input, button { padding: 6px; font-size: 14px; }
+button { margin-left: 6px; cursor: pointer; }
+ul { padding-left: 0; }
+li { list-style: none; margin-bottom: 10px; }
+.recipe { background: #f2f2f2; padding: 12px; border-radius: 6px; }
+.recipe-title { font-weight: bold; cursor: pointer; }
+.details { display: none; margin-top: 8px; margin-left: 12px; }
+</style>
+</head>
+<body><h1>Rezepte</h1><h2>Neues Rezept (Test)</h2>
+<input id="newRecipeName" placeholder="Rezeptname eingeben" />
+<button id="addRecipeBtn">Rezept hinzufügen</button><hr><ul id="recipes"></ul><script>
+// Start-Rezepte
+const recipes = [
+  { name: 'Lasagne', ingredients: ['Hackfleisch – 500 g', 'Tomaten – 2 Dosen'] },
+  { name: 'Linseneintopf', ingredients: ['Linsen – 300 g', 'Kartoffeln – 500 g'] }
+];
+
+const ul = document.getElementById('recipes');
+
+function renderRecipes() {
+  ul.innerHTML = '';
+  recipes.forEach(r => {
+    const li = document.createElement('li');
+    li.className = 'recipe';
+
+    const title = document.createElement('div');
+    title.className = 'recipe-title';
+    title.textContent = r.name;
+
+    const details = document.createElement('div');
+    details.className = 'details';
+    details.innerHTML = '<ul>' + r.ingredients.map(i => `<li>${i}</li>`).join('') + '</ul>';
+
 
