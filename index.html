@@ -15,7 +15,9 @@ li.recipe { background: #fff; margin-bottom: 10px; padding: 12px; border-radius:
 <body><h1>Rezepte</h1>
 <p>Tippe auf ein Rezept, um die Zutaten zu sehen.</p><h2>Wochenplan</h2>
 <p>Wähle für jeden Tag ein Gericht.</p>
-<ul id="mealPlan"></ul><h2>Rezepte</h2>
+<ul id="mealPlan"></ul><h2>Einkaufsliste</h2>
+<p>Automatisch aus dem Wochenplan.</p>
+<ul id="shoppingList"></ul><h2>Rezepte</h2>
 <ul id="recipeList"></ul><script>
 const recipes = [
   {
@@ -83,8 +85,40 @@ function renderMealPlan() {
       if (choice) {
         mealPlan[day] = choice;
         renderMealPlan();
+        renderShoppingList();
       }
     };
+    ul.appendChild(li);
+  });
+}:</strong> ${mealPlan[day] || '– auswählen –'}`;
+    li.onclick = () => {
+      const choice = prompt('Welches Rezept für ' + day + '?');
+      if (choice) {
+        mealPlan[day] = choice;
+        renderMealPlan();
+      }
+    };
+    ul.appendChild(li);
+  });
+}
+
+function renderShoppingList() {
+  const ul = document.getElementById('shoppingList');
+  ul.innerHTML = '';
+  const items = {};
+
+  Object.values(mealPlan).forEach(meal => {
+    const recipe = recipes.find(r => r.name === meal);
+    if (!recipe) return;
+    recipe.ingredients.forEach(ing => {
+      const key = ing.name + ' – ' + ing.amount;
+      items[key] = true;
+    });
+  });
+
+  Object.keys(items).forEach(item => {
+    const li = document.createElement('li');
+    li.textContent = item;
     ul.appendChild(li);
   });
 }
@@ -115,6 +149,7 @@ function renderRecipes() {
 }
 
 renderMealPlan();
+renderShoppingList();
 renderRecipes();
 </script></body>
 </html> 
