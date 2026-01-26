@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Essensplan – Rezepte</title>
+<title>Essensplan – Rezepte (gespeichert)</title>
 <style>
 body { font-family: Arial, sans-serif; padding: 20px; }
 h1, h2 { margin-bottom: 12px; }
@@ -17,11 +17,27 @@ li { list-style: none; margin-bottom: 10px; }
 <body><h1>Rezepte</h1><h2>Neues Rezept hinzufügen</h2>
 <input id="newRecipeName" placeholder="Rezeptname eingeben" />
 <button id="addRecipeBtn">Rezept hinzufügen</button><hr><ul id="recipes"></ul><script>
+// --- Speicherung ---
+const STORAGE_KEY = 'recipes_v1';
+
+function loadRecipes() {
+  const data = localStorage.getItem(STORAGE_KEY);
+  if (data) {
+    return JSON.parse(data);
+  }
+  // Standard-Rezepte (nur beim ersten Start)
+  return [
+    { name: 'Lasagne', ingredients: ['Hackfleisch – 500 g', 'Tomaten – 2 Dosen'] },
+    { name: 'Linseneintopf', ingredients: ['Linsen – 300 g', 'Kartoffeln – 500 g'] }
+  ];
+}
+
+function saveRecipes() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+}
+
 // Zentrale Rezeptliste
-let recipes = [
-  { name: 'Lasagne', ingredients: ['Hackfleisch – 500 g', 'Tomaten – 2 Dosen'] },
-  { name: 'Linseneintopf', ingredients: ['Linsen – 300 g', 'Kartoffeln – 500 g'] }
-];
+let recipes = loadRecipes();
 
 const ul = document.getElementById('recipes');
 
@@ -56,8 +72,8 @@ document.getElementById('addRecipeBtn').onclick = () => {
   const name = input.value.trim();
   if (!name) return;
 
-  // NEUES Rezept kommt IMMER OBEN rein
   recipes.unshift({ name, ingredients: ['(noch keine Zutaten)'] });
+  saveRecipes();
 
   input.value = '';
   renderRecipes();
@@ -66,4 +82,4 @@ document.getElementById('addRecipeBtn').onclick = () => {
 // Initial anzeigen
 renderRecipes();
 </script></body>
-</html> 
+</html>
