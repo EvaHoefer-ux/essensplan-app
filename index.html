@@ -1,34 +1,32 @@
 <!DOCTYPE html><html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Essensplan – Rezepte (gespeichert)</title>
+<title>Essensplan – Rezepte & Zutaten</title>
 <style>
 body { font-family: Arial, sans-serif; padding: 20px; }
 h1, h2 { margin-bottom: 12px; }
-input, button { padding: 6px; font-size: 14px; }
-button { margin-left: 6px; cursor: pointer; }
+input, button { padding: 6px; font-size: 14px; margin: 4px 0; }
+button { cursor: pointer; }
 ul { padding-left: 0; }
 li { list-style: none; margin-bottom: 10px; }
 .recipe { background: #f2f2f2; padding: 12px; border-radius: 6px; }
 .recipe-title { font-weight: bold; cursor: pointer; }
-.details { display: none; margin-top: 8px; margin-left: 12px; }
+.details { display: none; margin-top: 8px; }
+.ingredient-row { margin-left: 12px; }
+.add-ingredient { margin-top: 8px; border-top: 1px dashed #ccc; padding-top: 8px; }
 </style>
 </head>
-<body><h1>Rezepte</h1><h2>Neues Rezept hinzufügen</h2>
-<input id="newRecipeName" placeholder="Rezeptname eingeben" />
-<button id="addRecipeBtn">Rezept hinzufügen</button><hr><ul id="recipes"></ul><script>
-// --- Speicherung ---
-const STORAGE_KEY = 'recipes_v1';
+<body><h1>Rezepte</h1><h2>Neues Rezept</h2>
+<input id="newRecipeName" placeholder="Rezeptname" />
+<button onclick="addRecipe()">Rezept hinzufügen</button><hr><ul id="recipes"></ul><script>
+const STORAGE_KEY = 'recipes_v2';
 
 function loadRecipes() {
   const data = localStorage.getItem(STORAGE_KEY);
-  if (data) {
-    return JSON.parse(data);
-  }
-  // Standard-Rezepte (nur beim ersten Start)
+  if (data) return JSON.parse(data);
   return [
-    { name: 'Lasagne', ingredients: ['Hackfleisch – 500 g', 'Tomaten – 2 Dosen'] },
-    { name: 'Linseneintopf', ingredients: ['Linsen – 300 g', 'Kartoffeln – 500 g'] }
+    { name: 'Lasagne', ingredients: [] },
+    { name: 'Linseneintopf', ingredients: [] }
   ];
 }
 
@@ -36,15 +34,13 @@ function saveRecipes() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
 }
 
-// Zentrale Rezeptliste
 let recipes = loadRecipes();
-
 const ul = document.getElementById('recipes');
 
 function renderRecipes() {
   ul.innerHTML = '';
 
-  recipes.forEach(recipe => {
+  recipes.forEach((recipe, recipeIndex) => {
     const li = document.createElement('li');
     li.className = 'recipe';
 
@@ -54,7 +50,39 @@ function renderRecipes() {
 
     const details = document.createElement('div');
     details.className = 'details';
-    details.innerHTML = '<ul>' + recipe.ingredients.map(i => `<li>${i}</li>`).join('') + '</ul>';
+
+    // Zutatenliste
+    const ingList = document.createElement('ul');
+    recipe.ingredients.forEach(ing => {
+      const ingLi = document.createElement('li');
+      ingLi.className = 'ingredient-row';
+      ingLi.textContent = `${ing.name} – ${ing.amount} ${ing.unit}`;
+      ingList.appendChild(ingLi);
+    });
+
+    // Zutat hinzufügen
+    const addBox = document.createElement('div');
+    addBox.className = 'add-ingredient';
+    addBox.innerHTML = `
+      <input placeholder="Zutat" class="ing-name" />
+      <input type="number" placeholder="Menge" class="ing-amount" style="width:80px" />
+      <input placeholder="Einheit" class="ing-unit" style="width:80px" />
+      <button>Zutat hinzufügen</button>
+    `;
+
+    addBox.querySelector('button').onclick = () => {
+      const name = addBox.querySelector('.ing-name').value.trim();
+      const amount = addBox.querySelector('.ing-amount').value;
+      const unit = addBox.querySelector('.ing-unit').value.trim();
+      if (!name || !amount || !unit) return;
+
+      recipe.ingredients.push({ name, amount: Number(amount), unit });
+      saveRecipes();
+      renderRecipes();
+    };
+
+    details.appendChild(ingList);
+    details.appendChild(addBox);
 
     title.onclick = () => {
       details.style.display = details.style.display === 'block' ? 'none' : 'block';
@@ -66,20 +94,17 @@ function renderRecipes() {
   });
 }
 
-// Rezept hinzufügen
-document.getElementById('addRecipeBtn').onclick = () => {
+function addRecipe() {
   const input = document.getElementById('newRecipeName');
   const name = input.value.trim();
   if (!name) return;
 
-  recipes.unshift({ name, ingredients: ['(noch keine Zutaten)'] });
-  saveRecipes();
-
+  recipes.unshift({ name, ingredients: [] });
   input.value = '';
+  saveRecipes();
   renderRecipes();
-};
+}
 
-// Initial anzeigen
 renderRecipes();
 </script></body>
 </html>
