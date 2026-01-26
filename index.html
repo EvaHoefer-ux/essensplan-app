@@ -1,46 +1,84 @@
 <!DOCTYPE html><html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Essensplan – Rezepte & Zutaten</title>
+<title>Essensplan – Rezepte & Wochenplan</title>
 <style>
 body { font-family: Arial, sans-serif; padding: 20px; }
 h1, h2 { margin-bottom: 12px; }
-input, button { padding: 6px; font-size: 14px; margin: 4px 0; }
+input, select, button { padding: 6px; font-size: 14px; margin: 4px 0; }
 button { cursor: pointer; }
 ul { padding-left: 0; }
 li { list-style: none; margin-bottom: 10px; }
-.recipe { background: #f2f2f2; padding: 12px; border-radius: 6px; }
+.recipe, .day { background: #f2f2f2; padding: 12px; border-radius: 6px; margin-bottom: 8px; }
 .recipe-title { font-weight: bold; cursor: pointer; }
 .details { display: none; margin-top: 8px; }
 .ingredient-row { margin-left: 12px; }
-.add-ingredient { margin-top: 8px; border-top: 1px dashed #ccc; padding-top: 8px; }
 </style>
 </head>
-<body><h1>Rezepte</h1><h2>Neues Rezept</h2>
+<body><h1>Essensplan</h1><h2>Wochenplan</h2>
+<div id="week"></div><hr><h2>Rezepte</h2>
 <input id="newRecipeName" placeholder="Rezeptname" />
-<button onclick="addRecipe()">Rezept hinzufügen</button><hr><ul id="recipes"></ul><script>
-const STORAGE_KEY = 'recipes_v2';
+<button onclick="addRecipe()">Rezept hinzufügen</button><ul id="recipes"></ul><script>
+const STORAGE_KEY = 'mealplanner_v1';
 
-function loadRecipes() {
+const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+
+function loadData() {
   const data = localStorage.getItem(STORAGE_KEY);
   if (data) return JSON.parse(data);
-  return [
-    { name: 'Lasagne', ingredients: [] },
-    { name: 'Linseneintopf', ingredients: [] }
-  ];
+  return {
+    recipes: [
+      { name: 'Lasagne', ingredients: [] },
+      { name: 'Linseneintopf', ingredients: [] }
+    ],
+    plan: {}
+  };
 }
 
-function saveRecipes() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes));
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-let recipes = loadRecipes();
-const ul = document.getElementById('recipes');
+let data = loadData();
+
+const weekDiv = document.getElementById('week');
+const recipeUl = document.getElementById('recipes');
+
+function renderWeek() {
+  weekDiv.innerHTML = '';
+  days.forEach(day => {
+    const div = document.createElement('div');
+    div.className = 'day';
+
+    const select = document.createElement('select');
+    const empty = document.createElement('option');
+    empty.value = '';
+    empty.textContent = '– Gericht wählen –';
+    select.appendChild(empty);
+
+    data.recipes.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.name;
+      opt.textContent = r.name;
+      if (data.plan[day] === r.name) opt.selected = true;
+      select.appendChild(opt);
+    });
+
+    select.onchange = () => {
+      data.plan[day] = select.value;
+      saveData();
+    };
+
+    div.innerHTML = `<strong>${day}</strong><br>`;
+    div.appendChild(select);
+    weekDiv.appendChild(div);
+  });
+}
 
 function renderRecipes() {
-  ul.innerHTML = '';
+  recipeUl.innerHTML = '';
 
-  recipes.forEach((recipe, recipeIndex) => {
+  data.recipes.forEach(recipe => {
     const li = document.createElement('li');
     li.className = 'recipe';
 
@@ -51,7 +89,6 @@ function renderRecipes() {
     const details = document.createElement('div');
     details.className = 'details';
 
-    // Zutatenliste
     const ingList = document.createElement('ul');
     recipe.ingredients.forEach(ing => {
       const ingLi = document.createElement('li');
@@ -60,24 +97,21 @@ function renderRecipes() {
       ingList.appendChild(ingLi);
     });
 
-    // Zutat hinzufügen
     const addBox = document.createElement('div');
-    addBox.className = 'add-ingredient';
     addBox.innerHTML = `
-      <input placeholder="Zutat" class="ing-name" />
-      <input type="number" placeholder="Menge" class="ing-amount" style="width:80px" />
-      <input placeholder="Einheit" class="ing-unit" style="width:80px" />
+      <input placeholder="Zutat" class="n" />
+      <input type="number" placeholder="Menge" class="a" style="width:80px" />
+      <input placeholder="Einheit" class="u" style="width:80px" />
       <button>Zutat hinzufügen</button>
     `;
 
     addBox.querySelector('button').onclick = () => {
-      const name = addBox.querySelector('.ing-name').value.trim();
-      const amount = addBox.querySelector('.ing-amount').value;
-      const unit = addBox.querySelector('.ing-unit').value.trim();
-      if (!name || !amount || !unit) return;
-
-      recipe.ingredients.push({ name, amount: Number(amount), unit });
-      saveRecipes();
+      const n = addBox.querySelector('.n').value.trim();
+      const a = addBox.querySelector('.a').value;
+      const u = addBox.querySelector('.u').value.trim();
+      if (!n || !a || !u) return;
+      recipe.ingredients.push({ name: n, amount: Number(a), unit: u });
+      saveData();
       renderRecipes();
     };
 
@@ -90,7 +124,7 @@ function renderRecipes() {
 
     li.appendChild(title);
     li.appendChild(details);
-    ul.appendChild(li);
+    recipeUl.appendChild(li);
   });
 }
 
@@ -98,13 +132,14 @@ function addRecipe() {
   const input = document.getElementById('newRecipeName');
   const name = input.value.trim();
   if (!name) return;
-
-  recipes.unshift({ name, ingredients: [] });
+  data.recipes.unshift({ name, ingredients: [] });
   input.value = '';
-  saveRecipes();
+  saveData();
+  renderWeek();
   renderRecipes();
 }
 
+renderWeek();
 renderRecipes();
 </script></body>
 </html>
