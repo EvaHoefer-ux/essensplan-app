@@ -1,40 +1,40 @@
 <!DOCTYPE html><html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Essensplan – Rezepte & Wochenplan</title>
+<title>Essensplan – Einkaufsliste</title>
 <style>
 body { font-family: Arial, sans-serif; padding: 20px; }
 h1, h2 { margin-bottom: 12px; }
 input, select, button { padding: 6px; font-size: 14px; margin: 4px 0; }
 button { cursor: pointer; }
 ul { padding-left: 0; }
-li { list-style: none; margin-bottom: 10px; }
-.recipe, .day { background: #f2f2f2; padding: 12px; border-radius: 6px; margin-bottom: 8px; }
+li { list-style: none; margin-bottom: 6px; }
+.section { background: #f2f2f2; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
 .recipe-title { font-weight: bold; cursor: pointer; }
 .details { display: none; margin-top: 8px; }
 .ingredient-row { margin-left: 12px; }
 </style>
 </head>
-<body><h1>Essensplan</h1><h2>Wochenplan</h2>
-<div id="week"></div><hr><h2>Rezepte</h2>
+<body><h1>Essensplan</h1><div class="section">
+<h2>Wochenplan</h2>
+<div id="week"></div>
+</div><div class="section">
+<h2>Einkaufsliste (automatisch)</h2>
+<ul id="shopping"></ul>
+</div><div class="section">
+<h2>Rezepte</h2>
 <input id="newRecipeName" placeholder="Rezeptname" />
-<button onclick="addRecipe()">Rezept hinzufügen</button><ul id="recipes"></ul><script>
-const STORAGE_KEY = 'mealplanner_v1';
-
-const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+<button onclick="addRecipe()">Rezept hinzufügen</button>
+<ul id="recipes"></ul>
+</div><script>
+const STORAGE_KEY = 'mealplanner_v2';
+const days = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
 
 function loadData() {
-  const data = localStorage.getItem(STORAGE_KEY);
-  if (data) return JSON.parse(data);
-  return {
-    recipes: [
-      { name: 'Lasagne', ingredients: [] },
-      { name: 'Linseneintopf', ingredients: [] }
-    ],
-    plan: {}
-  };
+  const d = localStorage.getItem(STORAGE_KEY);
+  if (d) return JSON.parse(d);
+  return { recipes: [], plan: {} };
 }
-
 function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
@@ -43,13 +43,12 @@ let data = loadData();
 
 const weekDiv = document.getElementById('week');
 const recipeUl = document.getElementById('recipes');
+const shoppingUl = document.getElementById('shopping');
 
 function renderWeek() {
   weekDiv.innerHTML = '';
   days.forEach(day => {
     const div = document.createElement('div');
-    div.className = 'day';
-
     const select = document.createElement('select');
     const empty = document.createElement('option');
     empty.value = '';
@@ -57,16 +56,17 @@ function renderWeek() {
     select.appendChild(empty);
 
     data.recipes.forEach(r => {
-      const opt = document.createElement('option');
-      opt.value = r.name;
-      opt.textContent = r.name;
-      if (data.plan[day] === r.name) opt.selected = true;
-      select.appendChild(opt);
+      const o = document.createElement('option');
+      o.value = r.name;
+      o.textContent = r.name;
+      if (data.plan[day] === r.name) o.selected = true;
+      select.appendChild(o);
     });
 
     select.onchange = () => {
       data.plan[day] = select.value;
       saveData();
+      renderShopping();
     };
 
     div.innerHTML = `<strong>${day}</strong><br>`;
@@ -75,12 +75,36 @@ function renderWeek() {
   });
 }
 
+function renderShopping() {
+  shoppingUl.innerHTML = '';
+  const totals = {};
+
+  days.forEach(day => {
+    const recipeName = data.plan[day];
+    if (!recipeName) return;
+    const recipe = data.recipes.find(r => r.name === recipeName);
+    if (!recipe) return;
+
+    recipe.ingredients.forEach(ing => {
+      const key = ing.name + '|' + ing.unit;
+      if (!totals[key]) totals[key] = { name: ing.name, unit: ing.unit, amount: 0 };
+      totals[key].amount += ing.amount;
+    });
+  });
+
+  Object.values(totals).forEach(i => {
+    const li = document.createElement('li');
+    li.textContent = `${i.name} – ${i.amount} ${i.unit}`;
+    shoppingUl.appendChild(li);
+  });
+}
+
 function renderRecipes() {
   recipeUl.innerHTML = '';
 
   data.recipes.forEach(recipe => {
     const li = document.createElement('li');
-    li.className = 'recipe';
+    li.className = 'section';
 
     const title = document.createElement('div');
     title.className = 'recipe-title';
@@ -107,12 +131,13 @@ function renderRecipes() {
 
     addBox.querySelector('button').onclick = () => {
       const n = addBox.querySelector('.n').value.trim();
-      const a = addBox.querySelector('.a').value;
+      const a = Number(addBox.querySelector('.a').value);
       const u = addBox.querySelector('.u').value.trim();
       if (!n || !a || !u) return;
-      recipe.ingredients.push({ name: n, amount: Number(a), unit: u });
+      recipe.ingredients.push({ name: n, amount: a, unit: u });
       saveData();
       renderRecipes();
+      renderShopping();
     };
 
     details.appendChild(ingList);
@@ -141,5 +166,6 @@ function addRecipe() {
 
 renderWeek();
 renderRecipes();
+renderShopping();
 </script></body>
 </html>
