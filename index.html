@@ -1,9 +1,7 @@
-
-
 <!DOCTYPE html><html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Essensplan – Zutaten bearbeiten</title>
+<title>Essensplan – Einkaufsliste abhaken</title>
 <style>
 body { font-family: Arial, sans-serif; padding: 20px; }
 h1, h2 { margin-bottom: 12px; }
@@ -15,7 +13,7 @@ li { list-style: none; margin-bottom: 6px; }
 .recipe-title { font-weight: bold; cursor: pointer; }
 .details { display: none; margin-top: 8px; }
 .ingredient-row { margin-left: 12px; }
-.small { font-size: 12px; color: #555; }
+.checked { text-decoration: line-through; color: #777; }
 </style>
 </head>
 <body><h1>Essensplan</h1><div class="section">
@@ -24,19 +22,20 @@ li { list-style: none; margin-bottom: 6px; }
 </div><div class="section">
 <h2>Einkaufsliste</h2>
 <ul id="shopping"></ul>
+<button onclick="resetShopping()">Alle Häkchen zurücksetzen</button>
 </div><div class="section">
-<h2>Rezepte & Zutaten</h2>
+<h2>Rezepte</h2>
 <input id="newRecipeName" placeholder="Rezeptname" />
 <button onclick="addRecipe()">Rezept hinzufügen</button>
 <ul id="recipes"></ul>
 </div><script>
-const STORAGE_KEY = 'mealplanner_v3';
+const STORAGE_KEY = 'mealplanner_v4';
 const days = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
 
 function loadData() {
   const d = localStorage.getItem(STORAGE_KEY);
   if (d) return JSON.parse(d);
-  return { recipes: [], plan: {} };
+  return { recipes: [], plan: {}, checked: {} };
 }
 function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -96,16 +95,38 @@ function renderShopping() {
   });
 
   Object.values(totals).forEach(i => {
+    const key = i.name + '|' + i.unit;
     const li = document.createElement('li');
-    li.textContent = `${i.name} – ${i.amount} ${i.unit}`;
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!data.checked[key];
+
+    cb.onchange = () => {
+      data.checked[key] = cb.checked;
+      saveData();
+      renderShopping();
+    };
+
+    const span = document.createElement('span');
+    span.textContent = ` ${i.name} – ${i.amount} ${i.unit}`;
+    if (cb.checked) span.className = 'checked';
+
+    li.appendChild(cb);
+    li.appendChild(span);
     shoppingUl.appendChild(li);
   });
+}
+
+function resetShopping() {
+  data.checked = {};
+  saveData();
+  renderShopping();
 }
 
 function renderRecipes() {
   recipeUl.innerHTML = '';
 
-  data.recipes.forEach((recipe, rIndex) => {
+  data.recipes.forEach((recipe) => {
     const li = document.createElement('li');
     li.className = 'section';
 
@@ -120,35 +141,12 @@ function renderRecipes() {
     recipe.ingredients.forEach((ing, iIndex) => {
       const ingLi = document.createElement('li');
       ingLi.className = 'ingredient-row';
-      ingLi.innerHTML = `
-        <input value="${ing.name}" class="n" />
-        <input type="number" value="${ing.amount}" class="a" style="width:70px" />
-        <input value="${ing.unit}" class="u" style="width:60px" />
-        <button class="save">💾</button>
-        <button class="del">🗑️</button>
-      `;
-
-      ingLi.querySelector('.save').onclick = () => {
-        ing.name = ingLi.querySelector('.n').value.trim();
-        ing.amount = Number(ingLi.querySelector('.a').value);
-        ing.unit = ingLi.querySelector('.u').value.trim();
-        saveData();
-        renderShopping();
-      };
-
-      ingLi.querySelector('.del').onclick = () => {
-        recipe.ingredients.splice(iIndex, 1);
-        saveData();
-        renderRecipes();
-        renderShopping();
-      };
-
+      ingLi.textContent = `${ing.name} – ${ing.amount} ${ing.unit}`;
       ingList.appendChild(ingLi);
     });
 
     const addBox = document.createElement('div');
     addBox.innerHTML = `
-      <div class="small">Neue Zutat</div>
       <input placeholder="Zutat" class="n" />
       <input type="number" placeholder="Menge" class="a" style="width:70px" />
       <input placeholder="Einheit" class="u" style="width:60px" />
@@ -195,7 +193,3 @@ renderRecipes();
 renderShopping();
 </script></body>
 </html>
-
-
-
-
