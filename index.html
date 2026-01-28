@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Essensplan – Einkaufsliste abhaken</title>
+<title>Essensplan – Gefrierbestand</title>
 <style>
 body { font-family: Arial, sans-serif; padding: 20px; }
 h1, h2 { margin-bottom: 12px; }
@@ -12,30 +12,32 @@ li { list-style: none; margin-bottom: 6px; }
 .section { background: #f2f2f2; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
 .recipe-title { font-weight: bold; cursor: pointer; }
 .details { display: none; margin-top: 8px; }
-.ingredient-row { margin-left: 12px; }
 .checked { text-decoration: line-through; color: #777; }
+.freezer { color: #0066aa; font-weight: bold; }
 </style>
 </head>
 <body><h1>Essensplan</h1><div class="section">
 <h2>Wochenplan</h2>
 <div id="week"></div>
 </div><div class="section">
-<h2>Einkaufsliste</h2>
+<h2>❄️ Gefrierbestand</h2>
+<ul id="freezer"></ul>
+</div><div class="section">
+<h2>🛒 Einkaufsliste</h2>
 <ul id="shopping"></ul>
-<button onclick="resetShopping()">Alle Häkchen zurücksetzen</button>
 </div><div class="section">
 <h2>Rezepte</h2>
 <input id="newRecipeName" placeholder="Rezeptname" />
 <button onclick="addRecipe()">Rezept hinzufügen</button>
 <ul id="recipes"></ul>
 </div><script>
-const STORAGE_KEY = 'mealplanner_v4';
+const STORAGE_KEY = 'mealplanner_v5';
 const days = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
 
 function loadData() {
   const d = localStorage.getItem(STORAGE_KEY);
   if (d) return JSON.parse(d);
-  return { recipes: [], plan: {}, checked: {} };
+  return { recipes: [], plan: {}, freezer: {} };
 }
 function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -46,6 +48,7 @@ let data = loadData();
 const weekDiv = document.getElementById('week');
 const recipeUl = document.getElementById('recipes');
 const shoppingUl = document.getElementById('shopping');
+const freezerUl = document.getElementById('freezer');
 
 function renderWeek() {
   weekDiv.innerHTML = '';
@@ -77,6 +80,22 @@ function renderWeek() {
   });
 }
 
+function renderFreezer() {
+  freezerUl.innerHTML = '';
+  Object.entries(data.freezer).forEach(([name, count]) => {
+    const li = document.createElement('li');
+    li.innerHTML = `${name} – ${count} Portion(en) <button onclick="useFreezer('${name}')">🍽️ verwendet</button>`;
+    freezerUl.appendChild(li);
+  });
+}
+
+function useFreezer(name) {
+  if (data.freezer[name] > 0) data.freezer[name]--;
+  if (data.freezer[name] === 0) delete data.freezer[name];
+  saveData();
+  renderFreezer();
+}
+
 function renderShopping() {
   shoppingUl.innerHTML = '';
   const totals = {};
@@ -84,6 +103,13 @@ function renderShopping() {
   days.forEach(day => {
     const recipeName = data.plan[day];
     if (!recipeName) return;
+
+    if (data.freezer[recipeName]) {
+      data.freezer[recipeName]--;
+      if (data.freezer[recipeName] === 0) delete data.freezer[recipeName];
+      return;
+    }
+
     const recipe = data.recipes.find(r => r.name === recipeName);
     if (!recipe) return;
 
@@ -95,32 +121,10 @@ function renderShopping() {
   });
 
   Object.values(totals).forEach(i => {
-    const key = i.name + '|' + i.unit;
     const li = document.createElement('li');
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = !!data.checked[key];
-
-    cb.onchange = () => {
-      data.checked[key] = cb.checked;
-      saveData();
-      renderShopping();
-    };
-
-    const span = document.createElement('span');
-    span.textContent = ` ${i.name} – ${i.amount} ${i.unit}`;
-    if (cb.checked) span.className = 'checked';
-
-    li.appendChild(cb);
-    li.appendChild(span);
+    li.textContent = `${i.name} – ${i.amount} ${i.unit}`;
     shoppingUl.appendChild(li);
   });
-}
-
-function resetShopping() {
-  data.checked = {};
-  saveData();
-  renderShopping();
 }
 
 function renderRecipes() {
@@ -137,35 +141,15 @@ function renderRecipes() {
     const details = document.createElement('div');
     details.className = 'details';
 
-    const ingList = document.createElement('ul');
-    recipe.ingredients.forEach((ing, iIndex) => {
-      const ingLi = document.createElement('li');
-      ingLi.className = 'ingredient-row';
-      ingLi.textContent = `${ing.name} – ${ing.amount} ${ing.unit}`;
-      ingList.appendChild(ingLi);
-    });
-
-    const addBox = document.createElement('div');
-    addBox.innerHTML = `
-      <input placeholder="Zutat" class="n" />
-      <input type="number" placeholder="Menge" class="a" style="width:70px" />
-      <input placeholder="Einheit" class="u" style="width:60px" />
-      <button>+</button>
-    `;
-
-    addBox.querySelector('button').onclick = () => {
-      const n = addBox.querySelector('.n').value.trim();
-      const a = Number(addBox.querySelector('.a').value);
-      const u = addBox.querySelector('.u').value.trim();
-      if (!n || !a || !u) return;
-      recipe.ingredients.push({ name: n, amount: a, unit: u });
+    const freezeBtn = document.createElement('button');
+    freezeBtn.textContent = '❄️ Portion einfrieren';
+    freezeBtn.onclick = () => {
+      data.freezer[recipe.name] = (data.freezer[recipe.name] || 0) + 1;
       saveData();
-      renderRecipes();
-      renderShopping();
+      renderFreezer();
     };
 
-    details.appendChild(ingList);
-    details.appendChild(addBox);
+    details.appendChild(freezeBtn);
 
     title.onclick = () => {
       details.style.display = details.style.display === 'block' ? 'none' : 'block';
@@ -191,5 +175,6 @@ function addRecipe() {
 renderWeek();
 renderRecipes();
 renderShopping();
+renderFreezer();
 </script></body>
 </html>
