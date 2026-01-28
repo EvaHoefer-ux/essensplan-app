@@ -1,12 +1,226 @@
-Essensplan – mit Gefrier & Zutaten body { font-family: Arial, sans-serif; padding: 20px; } h1, h2 { margin-bottom: 12px; } input, select, button { padding: 6px; font-size: 14px; margin: 4px 0; } button { cursor: pointer; margin-left: 4px; } ul { padding-left: 0; } li { list-style: none; margin-bottom: 6px; } .section { background: #f2f2f2; padding: 12px; border-radius: 6px; margin-bottom: 16px; } .recipe-title { font-weight: bold; cursor: pointer; } .details { display: none; margin-top: 8px; } .ingredient-row { margin-left: 12px; } Essensplan 
+<!DOCTYPE html><html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Essensplan – mit Gefrier & Zutaten</title>
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; }
+h1, h2 { margin-bottom: 12px; }
+input, select, button { padding: 6px; font-size: 14px; margin: 4px 0; }
+button { cursor: pointer; margin-left: 4px; }
+ul { padding-left: 0; }
+li { list-style: none; margin-bottom: 6px; }
+.section { background: #f2f2f2; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+.recipe-title { font-weight: bold; cursor: pointer; }
+.details { display: none; margin-top: 8px; }
+.ingredient-row { margin-left: 12px; }
+</style>
+</head>
+<body><h1>Essensplan</h1><div class="section">
+<h2>Wochenplan</h2>
+<div id="week"></div>
+</div><div class="section">
+<h2>❄️ Gefrierbestand</h2>
+<ul id="freezer"></ul>
+</div><div class="section">
+<h2>🛒 Einkaufsliste</h2>
+<ul id="shopping"></ul>
+</div><div class="section">
+<h2>Rezepte & Zutaten</h2>
+<input id="newRecipeName" placeholder="Rezeptname" />
+<button onclick="addRecipe()">Rezept hinzufügen</button>
+<ul id="recipes"></ul>
+</div><script>
+const STORAGE_KEY = 'mealplanner_v6';
+const days = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
 
-Wochenplan 
+function loadData() {
+  const d = localStorage.getItem(STORAGE_KEY);
+  if (d) return JSON.parse(d);
+  return { recipes: [], plan: {}, freezer: {} };
+}
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
 
-❄️ Gefrierbestand 
+let data = loadData();
 
-🛒 Einkaufsliste 
+const weekDiv = document.getElementById('week');
+const recipeUl = document.getElementById('recipes');
+const shoppingUl = document.getElementById('shopping');
+const freezerUl = document.getElementById('freezer');
 
-Rezepte & Zutaten Rezept hinzufügen 
+function renderWeek() {
+  weekDiv.innerHTML = '';
+  days.forEach(day => {
+    const div = document.createElement('div');
+    const select = document.createElement('select');
+    const empty = document.createElement('option');
+    empty.value = '';
+    empty.textContent = '– Gericht wählen –';
+    select.appendChild(empty);
 
-const STORAGE_KEY = 'mealplanner_v6'; const days = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag']; function loadData() { const d = localStorage.getItem(STORAGE_KEY); if (d) return JSON.parse(d); return { recipes: [], plan: {}, freezer: {} }; } function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } let data = loadData(); const weekDiv = document.getElementById('week'); const recipeUl = document.getElementById('recipes'); const shoppingUl = document.getElementById('shopping'); const freezerUl = document.getElementById('freezer'); function renderWeek() { weekDiv.innerHTML = ''; days.forEach(day => { const div = document.createElement('div'); const select = document.createElement('select'); const empty = document.createElement('option'); empty.value = ''; empty.textContent = '– Gericht wählen –'; select.appendChild(empty); data.recipes.forEach(r => { const o = document.createElement('option'); o.value = r.name; o.textContent = r.name; if (data.plan[day] === r.name) o.selected = true; select.appendChild(o); }); select.onchange = () => { data.plan[day] = select.value; saveData(); renderShopping(); }; div.innerHTML = `${day}
-`; div.appendChild(select); weekDiv.appendChild(div); }); } function renderFreezer() { freezerUl.innerHTML = ''; Object.entries(data.freezer).forEach(([name, count]) => { const li = document.createElement('li'); li.innerHTML = `${name} – ${count} Portion(en) 🍽️ verwendet`; freezerUl.appendChild(li); }); } function useFreezer(name) { if (data.freezer[name] > 0) data.freezer[name]--; if (data.freezer[name] === 0) delete data.freezer[name]; saveData(); renderFreezer(); } function renderShopping() { shoppingUl.innerHTML = ''; const totals = {}; days.forEach(day => { const recipeName = data.plan[day]; if (!recipeName) return; if (data.freezer[recipeName]) return; const recipe = data.recipes.find(r => r.name === recipeName); if (!recipe) return; recipe.ingredients.forEach(ing => { const key = ing.name + '|' + ing.unit; if (!totals[key]) totals[key] = { name: ing.name, unit: ing.unit, amount: 0 }; totals[key].amount += ing.amount; }); }); Object.values(totals).forEach(i => { const li = document.createElement('li'); li.textContent = `${i.name} – ${i.amount} ${i.unit}`; shoppingUl.appendChild(li); }); } function renderRecipes() { recipeUl.innerHTML = ''; data.recipes.forEach((recipe) => { const li = document.createElement('li'); li.className = 'section'; const title = document.createElement('div'); title.className = 'recipe-title'; title.textContent = recipe.name; const details = document.createElement('div'); details.className = 'details'; const ingList = document.createElement('ul'); recipe.ingredients.forEach((ing, iIndex) => { const ingLi = document.createElement('li'); ingLi.className = 'ingredient-row'; ingLi.innerHTML = ` 💾 🗑️ `; ingLi.querySelector('.save').onclick = () => { ing.name = ingLi.querySelector('.n').value.trim(); ing.amount = Number(ingLi.querySelector('.a').value); ing.unit = ingLi.querySelector('.u').value.trim(); saveData(); renderShopping(); }; ingLi.querySelector('.del').onclick = () => { recipe.ingredients.splice(iIndex, 1); saveData(); renderRecipes(); renderShopping(); }; ingList.appendChild(ingLi); }); const addBox = document.createElement('div'); addBox.innerHTML = ` + `; addBox.querySelector('button').onclick = () => { const n = addBox.querySelector('.n').value.trim(); const a = Number(addBox.querySelector('.a').value); const u = addBox.querySelector('.u').value.trim(); if (!n || !a || !u) return; recipe.ingredients.push({ name: n, amount: a, unit: u }); saveData(); renderRecipes(); renderShopping(); }; const freezeBtn = document.createElement('button'); freezeBtn.textContent = '❄️ Portion einfrieren'; freezeBtn.onclick = () => { data.freezer[recipe.name] = (data.freezer[recipe.name] || 0) + 1; saveData(); renderFreezer(); }; details.appendChild(ingList); details.appendChild(addBox); details.appendChild(freezeBtn); title.onclick = () => { details.style.display = details.style.display === 'block' ? 'none' : 'block'; }; li.appendChild(title); li.appendChild(details); recipeUl.appendChild(li); }); } function addRecipe() { const input = document.getElementById('newRecipeName'); const name = input.value.trim(); if (!name) return; data.recipes.unshift({ name, ingredients: [] }); input.value = ''; saveData(); renderWeek(); renderRecipes(); } renderWeek(); renderRecipes(); renderShopping(); renderFreezer(); 
+    data.recipes.forEach(r => {
+      const o = document.createElement('option');
+      o.value = r.name;
+      o.textContent = r.name;
+      if (data.plan[day] === r.name) o.selected = true;
+      select.appendChild(o);
+    });
+
+    select.onchange = () => {
+      data.plan[day] = select.value;
+      saveData();
+      renderShopping();
+    };
+
+    div.innerHTML = `<strong>${day}</strong><br>`;
+    div.appendChild(select);
+    weekDiv.appendChild(div);
+  });
+}
+
+function renderFreezer() {
+  freezerUl.innerHTML = '';
+  Object.entries(data.freezer).forEach(([name, count]) => {
+    const li = document.createElement('li');
+    li.innerHTML = `${name} – ${count} Portion(en) <button onclick="useFreezer('${name}')">🍽️ verwendet</button>`;
+    freezerUl.appendChild(li);
+  });
+}
+
+function useFreezer(name) {
+  if (data.freezer[name] > 0) data.freezer[name]--;
+  if (data.freezer[name] === 0) delete data.freezer[name];
+  saveData();
+  renderFreezer();
+}
+
+function renderShopping() {
+  shoppingUl.innerHTML = '';
+  const totals = {};
+
+  days.forEach(day => {
+    const recipeName = data.plan[day];
+    if (!recipeName) return;
+
+    if (data.freezer[recipeName]) return;
+
+    const recipe = data.recipes.find(r => r.name === recipeName);
+    if (!recipe) return;
+
+    recipe.ingredients.forEach(ing => {
+      const key = ing.name + '|' + ing.unit;
+      if (!totals[key]) totals[key] = { name: ing.name, unit: ing.unit, amount: 0 };
+      totals[key].amount += ing.amount;
+    });
+  });
+
+  Object.values(totals).forEach(i => {
+    const li = document.createElement('li');
+    li.textContent = `${i.name} – ${i.amount} ${i.unit}`;
+    shoppingUl.appendChild(li);
+  });
+}
+
+function renderRecipes() {
+  recipeUl.innerHTML = '';
+
+  data.recipes.forEach((recipe) => {
+    const li = document.createElement('li');
+    li.className = 'section';
+
+    const title = document.createElement('div');
+    title.className = 'recipe-title';
+    title.textContent = recipe.name;
+
+    const details = document.createElement('div');
+    details.className = 'details';
+
+    const ingList = document.createElement('ul');
+    recipe.ingredients.forEach((ing, iIndex) => {
+      const ingLi = document.createElement('li');
+      ingLi.className = 'ingredient-row';
+      ingLi.innerHTML = `
+        <input value="${ing.name}" class="n" />
+        <input type="number" value="${ing.amount}" class="a" style="width:70px" />
+        <input value="${ing.unit}" class="u" style="width:60px" />
+        <button class="save">💾</button>
+        <button class="del">🗑️</button>
+      `;
+
+      ingLi.querySelector('.save').onclick = () => {
+        ing.name = ingLi.querySelector('.n').value.trim();
+        ing.amount = Number(ingLi.querySelector('.a').value);
+        ing.unit = ingLi.querySelector('.u').value.trim();
+        saveData();
+        renderShopping();
+      };
+
+      ingLi.querySelector('.del').onclick = () => {
+        recipe.ingredients.splice(iIndex, 1);
+        saveData();
+        renderRecipes();
+        renderShopping();
+      };
+
+      ingList.appendChild(ingLi);
+    });
+
+    const addBox = document.createElement('div');
+    addBox.innerHTML = `
+      <input placeholder="Zutat" class="n" />
+      <input type="number" placeholder="Menge" class="a" style="width:70px" />
+      <input placeholder="Einheit" class="u" style="width:60px" />
+      <button>+</button>
+    `;
+
+    addBox.querySelector('button').onclick = () => {
+      const n = addBox.querySelector('.n').value.trim();
+      const a = Number(addBox.querySelector('.a').value);
+      const u = addBox.querySelector('.u').value.trim();
+      if (!n || !a || !u) return;
+      recipe.ingredients.push({ name: n, amount: a, unit: u });
+      saveData();
+      renderRecipes();
+      renderShopping();
+    };
+
+    const freezeBtn = document.createElement('button');
+    freezeBtn.textContent = '❄️ Portion einfrieren';
+    freezeBtn.onclick = () => {
+      data.freezer[recipe.name] = (data.freezer[recipe.name] || 0) + 1;
+      saveData();
+      renderFreezer();
+    };
+
+    details.appendChild(ingList);
+    details.appendChild(addBox);
+    details.appendChild(freezeBtn);
+
+    title.onclick = () => {
+      details.style.display = details.style.display === 'block' ? 'none' : 'block';
+    };
+
+    li.appendChild(title);
+    li.appendChild(details);
+    recipeUl.appendChild(li);
+  });
+}
+
+function addRecipe() {
+  const input = document.getElementById('newRecipeName');
+  const name = input.value.trim();
+  if (!name) return;
+  data.recipes.unshift({ name, ingredients: [] });
+  input.value = '';
+  saveData();
+  renderWeek();
+  renderRecipes();
+}
+
+renderWeek();
+renderRecipes();
+renderShopping();
+renderFreezer();
+</script></body>
+</html>
