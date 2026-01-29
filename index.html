@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -116,7 +116,10 @@ function renderShopping() {
     const recipeName = data.plan[day];
     if (!recipeName) return;
 
-    if (data.freezer[recipeName]) return;
+    // Wenn Gericht im Gefrierbestand vorhanden ist → NICHT einkaufen
+    if (data.freezer[recipeName] && data.freezer[recipeName] > 0) {
+      return;
+    }
 
     const recipe = data.recipes.find(r => r.name === recipeName);
     if (!recipe) return;
