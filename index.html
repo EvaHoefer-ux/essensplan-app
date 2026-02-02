@@ -1,8 +1,7 @@
-<!DOCTYPE html>
-<html lang="de">
+<!DOCTYPE html><html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Essensplan – mit Gefrier & Zutaten</title>
+<title>Essensplan – stabile Einkaufsliste</title>
 <style>
 body { font-family: Arial, sans-serif; padding: 20px; }
 h1, h2 { margin-bottom: 12px; }
@@ -16,34 +15,22 @@ li { list-style: none; margin-bottom: 6px; }
 .ingredient-row { margin-left: 12px; }
 </style>
 </head>
-<body>
-
-<h1>Essensplan</h1>
-
-<div class="section">
+<body><h1>Essensplan</h1><div class="section">
 <h2>Wochenplan</h2>
 <div id="week"></div>
-</div>
-
-<div class="section">
+</div><div class="section">
 <h2>❄️ Gefrierbestand</h2>
 <ul id="freezer"></ul>
-</div>
-
-<div class="section">
+</div><div class="section">
 <h2>🛒 Einkaufsliste</h2>
 <ul id="shopping"></ul>
-</div>
-
-<div class="section">
+</div><div class="section">
 <h2>Rezepte & Zutaten</h2>
 <input id="newRecipeName" placeholder="Rezeptname" />
 <button onclick="addRecipe()">Rezept hinzufügen</button>
 <ul id="recipes"></ul>
-</div>
-
-<script>
-const STORAGE_KEY = 'mealplanner_v6';
+</div><script>
+const STORAGE_KEY = 'mealplanner_v7';
 const days = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
 
 function loadData() {
@@ -67,6 +54,7 @@ function renderWeek() {
   days.forEach(day => {
     const div = document.createElement('div');
     const select = document.createElement('select');
+
     const empty = document.createElement('option');
     empty.value = '';
     empty.textContent = '– Gericht wählen –';
@@ -92,6 +80,56 @@ function renderWeek() {
   });
 }
 
+function renderShopping() {
+  shoppingUl.innerHTML = '';
+  const totals = {};
+
+  // Zählen, wie oft jedes Rezept im Wochenplan vorkommt
+  const planCount = {};
+  days.forEach(day => {
+    const r = data.plan[day];
+    if (!r) return;
+    planCount[r] = (planCount[r] || 0) + 1;
+  });
+
+  Object.entries(planCount).forEach(([recipeName, count]) => {
+    const recipe = data.recipes.find(r => r.name === recipeName);
+    if (!recipe || !recipe.ingredients) return;
+
+    const frozen = data.freezer[recipeName] || 0;
+    const toCook = Math.max(0, count - frozen); // NUR Differenz einkaufen
+
+    if (toCook === 0) return;
+
+    recipe.ingredients.forEach(ing => {
+      if (!ing.name || !ing.amount || !ing.unit) return;
+      const key = ing.name + '|' + ing.unit;
+      if (!totals[key]) totals[key] = { name: ing.name, unit: ing.unit, amount: 0 };
+      totals[key].amount += Number(ing.amount) * toCook;
+    });
+  });
+
+  if (Object.keys(totals).length === 0) {
+    const li = document.createElement('li');
+    li.textContent = '— keine Einkäufe nötig —';
+    shoppingUl.appendChild(li);
+    return;
+  }
+
+  Object.values(totals).forEach(i => {
+    const li = document.createElement('li');
+    li.textContent = `${i.name} – ${i.amount} ${i.unit}`;
+    shoppingUl.appendChild(li);
+  });
+}
+
+  Object.values(totals).forEach(i => {
+    const li = document.createElement('li');
+    li.textContent = `${i.name} – ${i.amount} ${i.unit}`;
+    shoppingUl.appendChild(li);
+  });
+}
+
 function renderFreezer() {
   freezerUl.innerHTML = '';
   Object.entries(data.freezer).forEach(([name, count]) => {
@@ -106,42 +144,13 @@ function useFreezer(name) {
   if (data.freezer[name] === 0) delete data.freezer[name];
   saveData();
   renderFreezer();
-}
-
-function renderShopping() {
-  shoppingUl.innerHTML = '';
-  const totals = {};
-
-  days.forEach(day => {
-    const recipeName = data.plan[day];
-    if (!recipeName) return;
-
-    // Wenn Gericht im Gefrierbestand vorhanden ist → NICHT einkaufen
-    if (data.freezer[recipeName] && data.freezer[recipeName] > 0) {
-      return;
-    }
-
-    const recipe = data.recipes.find(r => r.name === recipeName);
-    if (!recipe) return;
-
-    recipe.ingredients.forEach(ing => {
-      const key = ing.name + '|' + ing.unit;
-      if (!totals[key]) totals[key] = { name: ing.name, unit: ing.unit, amount: 0 };
-      totals[key].amount += ing.amount;
-    });
-  });
-
-  Object.values(totals).forEach(i => {
-    const li = document.createElement('li');
-    li.textContent = `${i.name} – ${i.amount} ${i.unit}`;
-    shoppingUl.appendChild(li);
-  });
+  renderShopping();
 }
 
 function renderRecipes() {
   recipeUl.innerHTML = '';
 
-  data.recipes.forEach((recipe) => {
+  data.recipes.forEach(recipe => {
     const li = document.createElement('li');
     li.className = 'section';
 
@@ -207,6 +216,7 @@ function renderRecipes() {
       data.freezer[recipe.name] = (data.freezer[recipe.name] || 0) + 1;
       saveData();
       renderFreezer();
+      renderShopping();
     };
 
     details.appendChild(ingList);
@@ -238,7 +248,5 @@ renderWeek();
 renderRecipes();
 renderShopping();
 renderFreezer();
-</script>
-
-</body>
+</script></body>
 </html>
