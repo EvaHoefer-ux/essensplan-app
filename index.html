@@ -1,10 +1,12 @@
+
+
 <!DOCTYPE html><html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Essensplan – stabile Einkaufsliste</title>
+<title>Essensplan – Debug & stabile Logik</title>
 <style>
 body { font-family: Arial, sans-serif; padding: 20px; }
-h1, h2 { margin-bottom: 12px; }
+h1, h2, h3 { margin-bottom: 12px; }
 input, select, button { padding: 6px; font-size: 14px; margin: 4px 0; }
 button { cursor: pointer; margin-left: 4px; }
 ul { padding-left: 0; }
@@ -12,10 +14,14 @@ li { list-style: none; margin-bottom: 6px; }
 .section { background: #f2f2f2; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
 .recipe-title { font-weight: bold; cursor: pointer; }
 .details { display: none; margin-top: 8px; }
-.ingredient-row { margin-left: 12px; }
+.debug { font-size: 12px; color: #444; background:#fff3cd; padding:8px; margin-top:8px; }
 </style>
 </head>
 <body><h1>Essensplan</h1><div class="section">
+<h2>⚠️ Wartung</h2>
+<button onclick="resetAll()">🔄 ALLE DATEN ZURÜCKSETZEN</button>
+<div class="debug">Nutze diesen Button bitte EINMAL, wenn Berechnungen falsch sind. Alte Daten aus früheren Versionen werden damit entfernt.</div>
+</div><div class="section">
 <h2>Wochenplan</h2>
 <div id="week"></div>
 </div><div class="section">
@@ -24,13 +30,14 @@ li { list-style: none; margin-bottom: 6px; }
 </div><div class="section">
 <h2>🛒 Einkaufsliste</h2>
 <ul id="shopping"></ul>
+<div id="debugCalc" class="debug"></div>
 </div><div class="section">
 <h2>Rezepte & Zutaten</h2>
 <input id="newRecipeName" placeholder="Rezeptname" />
 <button onclick="addRecipe()">Rezept hinzufügen</button>
 <ul id="recipes"></ul>
 </div><script>
-const STORAGE_KEY = 'mealplanner_v7';
+const STORAGE_KEY = 'mealplanner_FINAL';
 const days = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
 
 function loadData() {
@@ -41,6 +48,10 @@ function loadData() {
 function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
+function resetAll() {
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
 
 let data = loadData();
 
@@ -48,6 +59,7 @@ const weekDiv = document.getElementById('week');
 const recipeUl = document.getElementById('recipes');
 const shoppingUl = document.getElementById('shopping');
 const freezerUl = document.getElementById('freezer');
+const debugCalc = document.getElementById('debugCalc');
 
 function renderWeek() {
   weekDiv.innerHTML = '';
@@ -82,27 +94,29 @@ function renderWeek() {
 
 function renderShopping() {
   shoppingUl.innerHTML = '';
+  debugCalc.innerHTML = '';
   const totals = {};
-
-  // Zählen, wie oft jedes Rezept im Wochenplan vorkommt
   const planCount = {};
+
   days.forEach(day => {
     const r = data.plan[day];
     if (!r) return;
     planCount[r] = (planCount[r] || 0) + 1;
   });
 
-  Object.entries(planCount).forEach(([recipeName, count]) => {
-    const recipe = data.recipes.find(r => r.name === recipeName);
-    if (!recipe || !recipe.ingredients) return;
+  debugCalc.innerHTML += '<b>Berechnung:</b><br>';
 
+  Object.entries(planCount).forEach(([recipeName, count]) => {
     const frozen = data.freezer[recipeName] || 0;
-    const toCook = Math.max(0, count - frozen); // NUR Differenz einkaufen
+    const toCook = Math.max(0, count - frozen);
+    debugCalc.innerHTML += `${recipeName}: geplant ${count}, gefroren ${frozen}, einkaufen ${toCook}<br>`;
 
     if (toCook === 0) return;
 
+    const recipe = data.recipes.find(r => r.name === recipeName);
+    if (!recipe || !recipe.ingredients) return;
+
     recipe.ingredients.forEach(ing => {
-      if (!ing.name || !ing.amount || !ing.unit) return;
       const key = ing.name + '|' + ing.unit;
       if (!totals[key]) totals[key] = { name: ing.name, unit: ing.unit, amount: 0 };
       totals[key].amount += Number(ing.amount) * toCook;
@@ -115,13 +129,6 @@ function renderShopping() {
     shoppingUl.appendChild(li);
     return;
   }
-
-  Object.values(totals).forEach(i => {
-    const li = document.createElement('li');
-    li.textContent = `${i.name} – ${i.amount} ${i.unit}`;
-    shoppingUl.appendChild(li);
-  });
-}
 
   Object.values(totals).forEach(i => {
     const li = document.createElement('li');
@@ -164,30 +171,11 @@ function renderRecipes() {
     const ingList = document.createElement('ul');
     recipe.ingredients.forEach((ing, iIndex) => {
       const ingLi = document.createElement('li');
-      ingLi.className = 'ingredient-row';
       ingLi.innerHTML = `
-        <input value="${ing.name}" class="n" />
-        <input type="number" value="${ing.amount}" class="a" style="width:70px" />
-        <input value="${ing.unit}" class="u" style="width:60px" />
-        <button class="save">💾</button>
-        <button class="del">🗑️</button>
+        <input value="${ing.name}" />
+        <input type="number" value="${ing.amount}" style="width:70px" />
+        <input value="${ing.unit}" style="width:60px" />
       `;
-
-      ingLi.querySelector('.save').onclick = () => {
-        ing.name = ingLi.querySelector('.n').value.trim();
-        ing.amount = Number(ingLi.querySelector('.a').value);
-        ing.unit = ingLi.querySelector('.u').value.trim();
-        saveData();
-        renderShopping();
-      };
-
-      ingLi.querySelector('.del').onclick = () => {
-        recipe.ingredients.splice(iIndex, 1);
-        saveData();
-        renderRecipes();
-        renderShopping();
-      };
-
       ingList.appendChild(ingLi);
     });
 
