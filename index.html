@@ -120,10 +120,20 @@ function renderShopping() {
     planCount[r] = (planCount[r] || 0) + 1;
   });
 
+  // ----- NEU: Plan-Änderung erkennen -----
+  const planSignature = JSON.stringify(planCount) + JSON.stringify(data.freezer);
+  if (data.lastPlanSignature !== planSignature) {
+    data.shoppingState = {}; // Haken zurücksetzen
+    data.lastPlanSignature = planSignature;
+    saveData();
+  }
+  // ---------------------------------------
+
   debugCalc.innerHTML += '<b>Berechnung:</b><br>';
 
   Object.entries(planCount).forEach(([recipeName, count]) => {
     const frozen = data.freezer[recipeName] || 0;
+    const́ 
     const toCook = Math.max(0, count - frozen);
     debugCalc.innerHTML += `${recipeName}: geplant ${count}, gefroren ${frozen}, einkaufen ${toCook}<br>`;
 
@@ -141,7 +151,6 @@ function renderShopping() {
 
   const items = Object.values(totals);
 
-  // sortiert: erst offene, dann abgehakte
   items.sort((a, b) => {
     const aKey = a.name + '|' + a.unit;
     const bKey = b.name + '|' + b.unit;
