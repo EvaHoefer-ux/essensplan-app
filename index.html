@@ -1,6 +1,5 @@
-
-
-<!DOCTYPE html><html lang="de">
+<!DOCTYPE html>
+<html lang="de">
 <head>
 <meta charset="UTF-8">
 <title>Essensplan – Debug & stabile Logik</title>
@@ -17,26 +16,40 @@ li { list-style: none; margin-bottom: 6px; }
 .debug { font-size: 12px; color: #444; background:#fff3cd; padding:8px; margin-top:8px; }
 </style>
 </head>
-<body><h1>Essensplan</h1><div class="section">
+<body>
+
+<h1>Essensplan</h1>
+
+<div class="section">
 <h2>⚠️ Wartung</h2>
 <button onclick="resetAll()">🔄 ALLE DATEN ZURÜCKSETZEN</button>
 <div class="debug">Nutze diesen Button bitte EINMAL, wenn Berechnungen falsch sind. Alte Daten aus früheren Versionen werden damit entfernt.</div>
-</div><div class="section">
+</div>
+
+<div class="section">
 <h2>Wochenplan</h2>
 <div id="week"></div>
-</div><div class="section">
+</div>
+
+<div class="section">
 <h2>❄️ Gefrierbestand</h2>
 <ul id="freezer"></ul>
-</div><div class="section">
+</div>
+
+<div class="section">
 <h2>🛒 Einkaufsliste</h2>
 <ul id="shopping"></ul>
 <div id="debugCalc" class="debug"></div>
-</div><div class="section">
+</div>
+
+<div class="section">
 <h2>Rezepte & Zutaten</h2>
 <input id="newRecipeName" placeholder="Rezeptname" />
 <button onclick="addRecipe()">Rezept hinzufügen</button>
 <ul id="recipes"></ul>
-</div><script>
+</div>
+
+<script>
 const STORAGE_KEY = 'mealplanner_FINAL';
 const days = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
 
@@ -95,6 +108,9 @@ function renderWeek() {
 function renderShopping() {
   shoppingUl.innerHTML = '';
   debugCalc.innerHTML = '';
+
+  if (!data.shoppingState) data.shoppingState = {};
+
   const totals = {};
   const planCount = {};
 
@@ -123,16 +139,48 @@ function renderShopping() {
     });
   });
 
-  if (Object.keys(totals).length === 0) {
+  const items = Object.values(totals);
+
+  // sortiert: erst offene, dann abgehakte
+  items.sort((a, b) => {
+    const aKey = a.name + '|' + a.unit;
+    const bKey = b.name + '|' + b.unit;
+    const aDone = data.shoppingState[aKey] ? 1 : 0;
+    const bDone = data.shoppingState[bKey] ? 1 : 0;
+    return aDone - bDone;
+  });
+
+  if (items.length === 0) {
     const li = document.createElement('li');
     li.textContent = '— keine Einkäufe nötig —';
     shoppingUl.appendChild(li);
     return;
   }
 
-  Object.values(totals).forEach(i => {
+  items.forEach(i => {
+    const key = i.name + '|' + i.unit;
     const li = document.createElement('li');
-    li.textContent = `${i.name} – ${i.amount} ${i.unit}`;
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = !!data.shoppingState[key];
+
+    const span = document.createElement('span');
+    span.textContent = ` ${i.name} – ${i.amount} ${i.unit}`;
+
+    if (checkbox.checked) {
+      span.style.textDecoration = 'line-through';
+      span.style.color = '#888';
+    }
+
+    checkbox.onchange = () => {
+      data.shoppingState[key] = checkbox.checked;
+      saveData();
+      renderShopping();
+    };
+
+    li.appendChild(checkbox);
+    li.appendChild(span);
     shoppingUl.appendChild(li);
   });
 }
@@ -236,5 +284,7 @@ renderWeek();
 renderRecipes();
 renderShopping();
 renderFreezer();
-</script></body>
+</script>
+
+</body>
 </html>
