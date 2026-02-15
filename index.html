@@ -1,278 +1,249 @@
-<!DOCTYPE html><html lang="de">
+
+<!DOCTYPE html>
+<html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Essensplan – Debug & stabile Logik</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Essensplan</title>
 <style>
-body { font-family: Arial, sans-serif; padding: 20px; }
-h1, h2, h3 { margin-bottom: 12px; }
-input, select, button { padding: 6px; font-size: 14px; margin: 4px 0; }
-button { cursor: pointer; margin-left: 4px; }
-ul { padding-left: 0; }
-li { list-style: none; margin-bottom: 6px; }
-.section { background: #f2f2f2; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
-.recipe-title { font-weight: bold; cursor: pointer; }
-.details { display: none; margin-top: 8px; }
-.debug { font-size: 12px; color: #444; background:#fff3cd; padding:8px; margin-top:8px; }
+body { font-family: Arial, sans-serif; margin: 20px; max-width: 900px; }
+h1 { margin-bottom: 10px; }
+section { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+button { padding: 6px 10px; margin: 4px 0; }
+input, select { padding: 5px; margin: 4px 0; }
+ul { list-style: none; padding: 0; }
+li { margin: 4px 0; }
+.recipe-card { border: 1px solid #ccc; padding: 8px; border-radius: 6px; margin-bottom: 8px; }
+.small { font-size: 0.9em; color: #555; }
 </style>
 </head>
-<body><h1>Essensplan</h1><div class="section">
-<h2>⚠️ Wartung</h2>
-<button onclick="resetAll()">🔄 ALLE DATEN ZURÜCKSETZEN</button>
-<div class="debug">Nutze diesen Button bitte EINMAL, wenn Berechnungen falsch sind. Alte Daten aus früheren Versionen werden damit entfernt.</div>
-</div><div class="section">
+<body>
+
+<h1>Essensplan</h1>
+
+<section>
 <h2>Wochenplan</h2>
-<div id="week"></div>
-</div><div class="section">
-<h2>❄️ Gefrierbestand</h2>
-<ul id="freezer"></ul>
-</div><div class="section">
-<h2>🛒 Einkaufsliste</h2>
-<ul id="shopping"></ul></div><div class="section">
-<h2>Rezepte & Zutaten</h2>
-<input id="newRecipeName" placeholder="Rezeptname" />
-<button onclick="addRecipe()">Rezept hinzufügen</button>
-<ul id="recipes"></ul>
-</div><script>
-const STORAGE_KEY = 'mealplanner_FINAL';
-const days = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+<div id="weekPlan"></div>
+</section>
 
-function loadData() {
-  const d = localStorage.getItem(STORAGE_KEY);
-  if (d) return JSON.parse(d);
-  return { recipes: [], plan: {}, freezer: {} };
-}
-function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-function resetAll() {
-  localStorage.removeItem(STORAGE_KEY);
-  location.reload();
-}
+<section>
+<h2>Rezepte</h2>
+<input id="newRecipeName" placeholder="Neues Rezept">
+<button id="addRecipeBtn">Rezept hinzufügen</button>
+<div id="recipes"></div>
+</section>
 
-let data = loadData();
+<section>
+<h2>Zusätzliche Einkäufe (z.B. Frühstück)</h2>
+<input id="extraName" placeholder="Zutat">
+<input id="extraAmount" type="number" placeholder="Menge" style="width:80px;">
+<input id="extraUnit" placeholder="Einheit" style="width:80px;">
+<button id="addExtraBtn">Hinzufügen</button>
+<ul id="extraList"></ul>
+</section>
 
-const weekDiv = document.getElementById('week');
-const recipeUl = document.getElementById('recipes');
-const shoppingUl = document.getElementById('shopping');
-const freezerUl = document.getElementById('freezer');
-const debugCalc = document.getElementById('debugCalc');
+<section>
+<h2>Einkaufsliste</h2>
+<ul id="shoppingList"></ul>
+</section>
+
+<script>
+const days = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
+
+let data = JSON.parse(localStorage.getItem("mealData")) || {
+  recipes: [],
+  plan: {},
+  extras: [],
+  shoppingState: {}
+};
+
+function save() {
+  localStorage.setItem("mealData", JSON.stringify(data));
+}
 
 function renderWeek() {
-  weekDiv.innerHTML = '';
-  days.forEach(day => {
-    const div = document.createElement('div');
-    const select = document.createElement('select');
+  const container = document.getElementById("weekPlan");
+  container.innerHTML = "";
 
-    const empty = document.createElement('option');
-    empty.value = '';
-    empty.textContent = '– Gericht wählen –';
+  days.forEach(day => {
+    const div = document.createElement("div");
+    const select = document.createElement("select");
+
+    const empty = document.createElement("option");
+    empty.value = "";
+    empty.textContent = "-- auswählen --";
     select.appendChild(empty);
 
     data.recipes.forEach(r => {
-      const o = document.createElement('option');
-      o.value = r.name;
-      o.textContent = r.name;
-      if (data.plan[day] === r.name) o.selected = true;
-      select.appendChild(o);
+      const opt = document.createElement("option");
+      opt.value = r.name;
+      opt.textContent = r.name;
+      if (data.plan[day] === r.name) opt.selected = true;
+      select.appendChild(opt);
     });
 
     select.onchange = () => {
       data.plan[day] = select.value;
-      saveData();
+      save();
       renderShopping();
     };
 
-    div.innerHTML = `<strong>${day}</strong><br>`;
+    div.innerHTML = `<strong>${day}:</strong> `;
     div.appendChild(select);
-    weekDiv.appendChild(div);
+    container.appendChild(div);
+  });
+}
+
+function renderRecipes() {
+  const container = document.getElementById("recipes");
+  container.innerHTML = "";
+
+  data.recipes.forEach(recipe => {
+    const card = document.createElement("div");
+    card.className = "recipe-card";
+
+    const title = document.createElement("h3");
+    title.textContent = recipe.name;
+
+    const ul = document.createElement("ul");
+    recipe.ingredients.forEach(ing => {
+      const li = document.createElement("li");
+      li.textContent = `${ing.name} – ${ing.amount} ${ing.unit}`;
+      ul.appendChild(li);
+    });
+
+    const nameInput = document.createElement("input");
+    nameInput.placeholder = "Zutat";
+
+    const amountInput = document.createElement("input");
+    amountInput.type = "number";
+    amountInput.placeholder = "Menge";
+    amountInput.style.width = "70px";
+
+    const unitInput = document.createElement("input");
+    unitInput.placeholder = "Einheit";
+    unitInput.style.width = "70px";
+
+    const btn = document.createElement("button");
+    btn.textContent = "Zutat hinzufügen";
+
+    btn.onclick = () => {
+      if (!nameInput.value || !amountInput.value || !unitInput.value) return;
+      recipe.ingredients.push({
+        name: nameInput.value,
+        amount: Number(amountInput.value),
+        unit: unitInput.value
+      });
+      save();
+      renderRecipes();
+      renderShopping();
+    };
+
+    card.appendChild(title);
+    card.appendChild(ul);
+    card.appendChild(nameInput);
+    card.appendChild(amountInput);
+    card.appendChild(unitInput);
+    card.appendChild(btn);
+
+    container.appendChild(card);
+  });
+}
+
+function renderExtras() {
+  const ul = document.getElementById("extraList");
+  ul.innerHTML = "";
+  data.extras.forEach((e, index) => {
+    const li = document.createElement("li");
+    li.textContent = `${e.name} – ${e.amount} ${e.unit}`;
+    ul.appendChild(li);
   });
 }
 
 function renderShopping() {
-  shoppingUl.innerHTML = '';
-  
-
-  if (!data.shoppingState) data.shoppingState = {};
+  const ul = document.getElementById("shoppingList");
+  ul.innerHTML = "";
 
   const totals = {};
-  const planCount = {};
 
-  days.forEach(day => {
-    const r = data.plan[day];
-    if (!r) return;
-    planCount[r] = (planCount[r] || 0) + 1;
-  });
-
-  // ----- NEU: Plan-Änderung erkennen -----
-  const planSignature = JSON.stringify(planCount);
-  if (data.lastPlanSignature !== planSignature) {
-    data.shoppingState = {}; // Haken zurücksetzen
-    data.lastPlanSignature = planSignature;
-    saveData();
-  }
-  // ---------------------------------------
-
-  
-
-  Object.entries(planCount).forEach(([recipeName, count]) => {
-    const toCook = count;
-    
-
-    if (toCook === 0) return;
-
+  Object.values(data.plan).forEach(recipeName => {
+    if (!recipeName) return;
     const recipe = data.recipes.find(r => r.name === recipeName);
-    if (!recipe || !recipe.ingredients) return;
+    if (!recipe) return;
 
     recipe.ingredients.forEach(ing => {
-      const key = ing.name + '|' + ing.unit;
-      if (!totals[key]) totals[key] = { name: ing.name, unit: ing.unit, amount: 0 };
-      totals[key].amount += Number(ing.amount) * toCook;
+      const key = ing.name + "|" + ing.unit;
+      if (!totals[key]) totals[key] = { ...ing };
+      else totals[key].amount += ing.amount;
     });
   });
 
-  const items = Object.values(totals);
-
-  items.sort((a, b) => {
-    const aKey = a.name + '|' + a.unit;
-    const bKey = b.name + '|' + b.unit;
-    const aDone = data.shoppingState[aKey] ? 1 : 0;
-    const bDone = data.shoppingState[bKey] ? 1 : 0;
-    return aDone - bDone;
+  data.extras.forEach(e => {
+    const key = e.name + "|" + e.unit;
+    if (!totals[key]) totals[key] = { ...e };
+    else totals[key].amount += e.amount;
   });
 
-  if (items.length === 0) {
-    const li = document.createElement('li');
-    li.textContent = '— keine Einkäufe nötig —';
-    shoppingUl.appendChild(li);
-    return;
-  }
+  Object.values(totals).forEach(item => {
+    const key = item.name + "|" + item.unit;
+    const li = document.createElement("li");
 
-  items.forEach(i => {
-    const key = i.name + '|' + i.unit;
-    const li = document.createElement('li');
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
     checkbox.checked = !!data.shoppingState[key];
 
-    const span = document.createElement('span');
-    span.textContent = ` ${i.name} – ${i.amount} ${i.unit}`;
+    const span = document.createElement("span");
+    span.textContent = ` ${item.name} – ${item.amount} ${item.unit}`;
 
     if (checkbox.checked) {
-      span.style.textDecoration = 'line-through';
-      span.style.color = '#888';
+      span.style.textDecoration = "line-through";
+      span.style.color = "#888";
     }
 
     checkbox.onchange = () => {
       data.shoppingState[key] = checkbox.checked;
-      saveData();
+      save();
       renderShopping();
     };
 
     li.appendChild(checkbox);
     li.appendChild(span);
-    shoppingUl.appendChild(li);
+    ul.appendChild(li);
   });
 }
 
-function renderFreezer() {
-  freezerUl.innerHTML = '';
-  Object.entries(data.freezer).forEach(([name, count]) => {
-    const li = document.createElement('li');
-    li.innerHTML = `${name} – ${count} Portion(en) <button onclick="useFreezer('${name}')">🍽️ verwendet</button>`;
-    freezerUl.appendChild(li);
-  });
-}
+// Events
 
-function useFreezer(name) {
-  if (data.freezer[name] > 0) data.freezer[name]--;
-  if (data.freezer[name] === 0) delete data.freezer[name];
-  saveData();
-  renderFreezer();
-  renderShopping();
-}
-
-function renderRecipes() {
-  recipeUl.innerHTML = '';
-
-  data.recipes.forEach(recipe => {
-    const li = document.createElement('li');
-    li.className = 'section';
-
-    const title = document.createElement('div');
-    title.className = 'recipe-title';
-    title.textContent = recipe.name;
-
-    const details = document.createElement('div');
-    details.className = 'details';
-
-    const ingList = document.createElement('ul');
-    recipe.ingredients.forEach((ing, iIndex) => {
-      const ingLi = document.createElement('li');
-      ingLi.innerHTML = `
-        <input value="${ing.name}" />
-        <input type="number" value="${ing.amount}" style="width:70px" />
-        <input value="${ing.unit}" style="width:60px" />
-      `;
-      ingList.appendChild(ingLi);
-    });
-
-    const addBox = document.createElement('div');
-    addBox.innerHTML = `
-      <input placeholder="Zutat" class="n" />
-      <input type="number" placeholder="Menge" class="a" style="width:70px" />
-      <input placeholder="Einheit" class="u" style="width:60px" />
-      <button>+</button>
-    `;
-
-    addBox.querySelector('button').onclick = () => {
-      const n = addBox.querySelector('.n').value.trim();
-      const a = Number(addBox.querySelector('.a').value);
-      const u = addBox.querySelector('.u').value.trim();
-      if (!n || !a || !u) return;
-      recipe.ingredients.push({ name: n, amount: a, unit: u });
-      saveData();
-      renderRecipes();
-      renderShopping();
-    };
-
-    const freezeBtn = document.createElement('button');
-    freezeBtn.textContent = '❄️ Portion einfrieren';
-    freezeBtn.onclick = () => {
-      data.freezer[recipe.name] = (data.freezer[recipe.name] || 0) + 1;
-      saveData();
-      renderFreezer();
-      renderShopping();
-    };
-
-    details.appendChild(ingList);
-    details.appendChild(addBox);
-    details.appendChild(freezeBtn);
-
-    title.onclick = () => {
-      details.style.display = details.style.display === 'block' ? 'none' : 'block';
-    };
-
-    li.appendChild(title);
-    li.appendChild(details);
-    recipeUl.appendChild(li);
-  });
-}
-
-function addRecipe() {
-  const input = document.getElementById('newRecipeName');
-  const name = input.value.trim();
+document.getElementById("addRecipeBtn").onclick = () => {
+  const name = document.getElementById("newRecipeName").value.trim();
   if (!name) return;
-  data.recipes.unshift({ name, ingredients: [] });
-  input.value = '';
-  saveData();
-  renderWeek();
+  data.recipes.push({ name, ingredients: [] });
+  document.getElementById("newRecipeName").value = "";
+  save();
   renderRecipes();
-}
+  renderWeek();
+};
+
+document.getElementById("addExtraBtn").onclick = () => {
+  const name = document.getElementById("extraName").value.trim();
+  const amount = Number(document.getElementById("extraAmount").value);
+  const unit = document.getElementById("extraUnit").value.trim();
+  if (!name || !amount || !unit) return;
+
+  data.extras.push({ name, amount, unit });
+  document.getElementById("extraName").value = "";
+  document.getElementById("extraAmount").value = "";
+  document.getElementById("extraUnit").value = "";
+  save();
+  renderExtras();
+  renderShopping();
+};
 
 renderWeek();
 renderRecipes();
+renderExtras();
 renderShopping();
-renderFreezer();
-</script></body>
+</script>
+
+</body>
 </html>
