@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -15,6 +14,7 @@ ul { list-style: none; padding: 0; }
 li { margin: 4px 0; }
 .recipe-card { border: 1px solid #ccc; padding: 8px; border-radius: 6px; margin-bottom: 8px; }
 .small { font-size: 0.9em; color: #555; }
+.delete-btn { margin-left: 10px; color: red; }
 </style>
 </head>
 <body>
@@ -98,17 +98,43 @@ function renderRecipes() {
   const container = document.getElementById("recipes");
   container.innerHTML = "";
 
-  data.recipes.forEach(recipe => {
+  data.recipes.forEach((recipe, recipeIndex) => {
     const card = document.createElement("div");
     card.className = "recipe-card";
 
     const title = document.createElement("h3");
     title.textContent = recipe.name;
 
+    const deleteRecipeBtn = document.createElement("button");
+    deleteRecipeBtn.textContent = "Rezept löschen";
+    deleteRecipeBtn.className = "delete-btn";
+    deleteRecipeBtn.onclick = () => {
+      data.recipes.splice(recipeIndex, 1);
+      Object.keys(data.plan).forEach(day => {
+        if (data.plan[day] === recipe.name) data.plan[day] = "";
+      });
+      save();
+      renderRecipes();
+      renderWeek();
+      renderShopping();
+    };
+
     const ul = document.createElement("ul");
-    recipe.ingredients.forEach(ing => {
+    recipe.ingredients.forEach((ing, ingIndex) => {
       const li = document.createElement("li");
       li.textContent = `${ing.name} – ${ing.amount} ${ing.unit}`;
+
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "x";
+      delBtn.className = "delete-btn";
+      delBtn.onclick = () => {
+        recipe.ingredients.splice(ingIndex, 1);
+        save();
+        renderRecipes();
+        renderShopping();
+      };
+
+      li.appendChild(delBtn);
       ul.appendChild(li);
     });
 
@@ -140,6 +166,7 @@ function renderRecipes() {
     };
 
     card.appendChild(title);
+    card.appendChild(deleteRecipeBtn);
     card.appendChild(ul);
     card.appendChild(nameInput);
     card.appendChild(amountInput);
@@ -153,9 +180,22 @@ function renderRecipes() {
 function renderExtras() {
   const ul = document.getElementById("extraList");
   ul.innerHTML = "";
+
   data.extras.forEach((e, index) => {
     const li = document.createElement("li");
     li.textContent = `${e.name} – ${e.amount} ${e.unit}`;
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "x";
+    delBtn.className = "delete-btn";
+    delBtn.onclick = () => {
+      data.extras.splice(index, 1);
+      save();
+      renderExtras();
+      renderShopping();
+    };
+
+    li.appendChild(delBtn);
     ul.appendChild(li);
   });
 }
