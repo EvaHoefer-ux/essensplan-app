@@ -1,5 +1,5 @@
 
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -8,13 +8,17 @@
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; max-width: 900px; }
 h1 { margin-bottom: 10px; }
-section { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+section { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 12px; }
+h2 { margin-top: 0; }
 button { padding: 6px 10px; margin: 4px 0; }
-input, select { padding: 5px; margin: 4px 0; }
+input, select { padding: 6px; margin: 4px 0; }
 ul { list-style: none; padding: 0; }
 li { margin: 4px 0; }
-.recipe-card { border: 1px solid #ccc; padding: 8px; border-radius: 6px; margin-bottom: 8px; }
+.recipe-card { border: 1px solid #ccc; padding: 10px; border-radius: 10px; margin-bottom: 10px; }
+.recipe-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.recipe-header h3 { margin: 0; }
 .delete-btn { margin-left: 10px; color: red; }
+.collapsed { display: none; }
 </style>
 </head>
 <body>
@@ -24,6 +28,12 @@ li { margin: 4px 0; }
 <section>
 <h2>Wochenplan</h2>
 <div id="weekPlan"></div>
+</section>
+
+<!-- Einkaufsliste jetzt ÜBER den Rezepten -->
+<section>
+<h2>Einkaufsliste</h2>
+<ul id="shoppingList"></ul>
 </section>
 
 <section>
@@ -47,11 +57,6 @@ li { margin: 4px 0; }
 <input id="extraUnit" placeholder="Einheit" style="width:80px;">
 <button id="addExtraBtn">Hinzufügen</button>
 <ul id="extraList"></ul>
-</section>
-
-<section>
-<h2>Einkaufsliste</h2>
-<ul id="shoppingList"></ul>
 </section>
 
 <script>
@@ -109,13 +114,17 @@ function renderRecipes() {
     const card = document.createElement("div");
     card.className = "recipe-card";
 
+    const header = document.createElement("div");
+    header.className = "recipe-header";
+
     const title = document.createElement("h3");
     title.textContent = recipe.name;
 
     const deleteRecipeBtn = document.createElement("button");
-    deleteRecipeBtn.textContent = "Rezept löschen";
+    deleteRecipeBtn.textContent = "Löschen";
     deleteRecipeBtn.className = "delete-btn";
-    deleteRecipeBtn.onclick = () => {
+    deleteRecipeBtn.onclick = (e) => {
+      e.stopPropagation();
       data.recipes.splice(recipeIndex, 1);
       Object.keys(data.plan).forEach(day => {
         if (data.plan[day] === recipe.name) data.plan[day] = "";
@@ -125,6 +134,12 @@ function renderRecipes() {
       renderWeek();
       renderShopping();
     };
+
+    header.appendChild(title);
+    header.appendChild(deleteRecipeBtn);
+
+    const content = document.createElement("div");
+    content.className = "collapsed"; // Standard: zugeklappt
 
     const ul = document.createElement("ul");
     recipe.ingredients.forEach((ing, ingIndex) => {
@@ -145,9 +160,14 @@ function renderRecipes() {
       ul.appendChild(li);
     });
 
-    card.appendChild(title);
-    card.appendChild(deleteRecipeBtn);
-    card.appendChild(ul);
+    content.appendChild(ul);
+
+    header.onclick = () => {
+      content.classList.toggle("collapsed");
+    };
+
+    card.appendChild(header);
+    card.appendChild(content);
     container.appendChild(card);
   });
 }
@@ -227,95 +247,6 @@ function renderShopping() {
   });
 }
 
-// CSV IMPORT (Komma ODER Semikolon)
-
-document.getElementById("importCsvBtn").onclick = () => {
-  const file = document.getElementById("csvFile").files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-
-  reader.onload = function(e) {
-    const text = e.target.result;
-    const lines = text.split(/\r?\n/);
-
-    if (lines.length < 2) return;
-
-    // Trenner automatisch erkennen
-    const header = lines[0];
-    const separator = header.includes(";") ? ";" : ",";
-
-    const recipesMap = {};
-
-    lines.slice(1).forEach(line => {
-      if (!line.trim()) return;
-
-      const parts = line.split(separator);
-      if (parts.length < 4) return;
-
-      const gericht = parts[0].trim();
-      const zutat = parts[1].trim();
-      const menge = parts[2].replace(",", ".").trim();
-      const einheit = parts[3].trim();
-
-      if (!gericht || !zutat) return;
-
-      if (!recipesMap[gericht]) {
-        recipesMap[gericht] = [];
-      }
-
-      recipesMap[gericht].push({
-        name: zutat,
-        amount: Number(menge),
-        unit: einheit
-      });
-    });
-
-    Object.entries(recipesMap).forEach(([name, ingredients]) => {
-      const exists = data.recipes.find(r => r.name === name);
-      if (!exists) {
-        data.recipes.push({ name, ingredients });
-      }
-    });
-
-    save();
-    renderRecipes();
-    renderWeek();
-    renderShopping();
-
-    alert("Import abgeschlossen");
-  };
-
-  reader.readAsText(file);
-};
-
-// Events
-
-document.getElementById("addRecipeBtn").onclick = () => {
-  const name = document.getElementById("newRecipeName").value.trim();
-  if (!name) return;
-  data.recipes.push({ name, ingredients: [] });
-  document.getElementById("newRecipeName").value = "";
-  save();
-  renderRecipes();
-  renderWeek();
-};
-
-document.getElementById("addExtraBtn").onclick = () => {
-  const name = document.getElementById("extraName").value.trim();
-  const amount = Number(document.getElementById("extraAmount").value);
-  const unit = document.getElementById("extraUnit").value.trim();
-  if (!name || !amount || !unit) return;
-
-  data.extras.push({ name, amount, unit });
-  document.getElementById("extraName").value = "";
-  document.getElementById("extraAmount").value = "";
-  document.getElementById("extraUnit").value = "";
-  save();
-  renderExtras();
-  renderShopping();
-};
-
 renderWeek();
 renderRecipes();
 renderExtras();
@@ -324,4 +255,6 @@ renderShopping();
 
 </body>
 </html>
+
+
 
