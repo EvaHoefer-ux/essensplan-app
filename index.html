@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -13,7 +14,6 @@ input, select { padding: 5px; margin: 4px 0; }
 ul { list-style: none; padding: 0; }
 li { margin: 4px 0; }
 .recipe-card { border: 1px solid #ccc; padding: 8px; border-radius: 6px; margin-bottom: 8px; }
-.small { font-size: 0.9em; color: #555; }
 .delete-btn { margin-left: 10px; color: red; }
 </style>
 </head>
@@ -24,6 +24,13 @@ li { margin: 4px 0; }
 <section>
 <h2>Wochenplan</h2>
 <div id="weekPlan"></div>
+</section>
+
+<section>
+<h2>Rezepte importieren (Excel / CSV)</h2>
+<input type="file" id="csvFile" accept=".csv">
+<button id="importCsvBtn">Import starten</button>
+<p>Format: Gericht, Zutat, Menge, Einheit (Komma ODER Semikolon)</p>
 </section>
 
 <section>
@@ -138,41 +145,9 @@ function renderRecipes() {
       ul.appendChild(li);
     });
 
-    const nameInput = document.createElement("input");
-    nameInput.placeholder = "Zutat";
-
-    const amountInput = document.createElement("input");
-    amountInput.type = "number";
-    amountInput.placeholder = "Menge";
-    amountInput.style.width = "70px";
-
-    const unitInput = document.createElement("input");
-    unitInput.placeholder = "Einheit";
-    unitInput.style.width = "70px";
-
-    const btn = document.createElement("button");
-    btn.textContent = "Zutat hinzufügen";
-
-    btn.onclick = () => {
-      if (!nameInput.value || !amountInput.value || !unitInput.value) return;
-      recipe.ingredients.push({
-        name: nameInput.value,
-        amount: Number(amountInput.value),
-        unit: unitInput.value
-      });
-      save();
-      renderRecipes();
-      renderShopping();
-    };
-
     card.appendChild(title);
     card.appendChild(deleteRecipeBtn);
     card.appendChild(ul);
-    card.appendChild(nameInput);
-    card.appendChild(amountInput);
-    card.appendChild(unitInput);
-    card.appendChild(btn);
-
     container.appendChild(card);
   });
 }
@@ -252,6 +227,68 @@ function renderShopping() {
   });
 }
 
+// CSV IMPORT (Komma ODER Semikolon)
+
+document.getElementById("importCsvBtn").onclick = () => {
+  const file = document.getElementById("csvFile").files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const lines = text.split(/\r?\n/);
+
+    if (lines.length < 2) return;
+
+    // Trenner automatisch erkennen
+    const header = lines[0];
+    const separator = header.includes(";") ? ";" : ",";
+
+    const recipesMap = {};
+
+    lines.slice(1).forEach(line => {
+      if (!line.trim()) return;
+
+      const parts = line.split(separator);
+      if (parts.length < 4) return;
+
+      const gericht = parts[0].trim();
+      const zutat = parts[1].trim();
+      const menge = parts[2].replace(",", ".").trim();
+      const einheit = parts[3].trim();
+
+      if (!gericht || !zutat) return;
+
+      if (!recipesMap[gericht]) {
+        recipesMap[gericht] = [];
+      }
+
+      recipesMap[gericht].push({
+        name: zutat,
+        amount: Number(menge),
+        unit: einheit
+      });
+    });
+
+    Object.entries(recipesMap).forEach(([name, ingredients]) => {
+      const exists = data.recipes.find(r => r.name === name);
+      if (!exists) {
+        data.recipes.push({ name, ingredients });
+      }
+    });
+
+    save();
+    renderRecipes();
+    renderWeek();
+    renderShopping();
+
+    alert("Import abgeschlossen");
+  };
+
+  reader.readAsText(file);
+};
+
 // Events
 
 document.getElementById("addRecipeBtn").onclick = () => {
@@ -287,3 +324,4 @@ renderShopping();
 
 </body>
 </html>
+
