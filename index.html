@@ -1,23 +1,31 @@
-
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Essensplan</title>
 <style>
-body { font-family: Arial, sans-serif; margin: 20px; max-width: 900px; }
-h1 { margin-bottom: 10px; }
-section { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 12px; }
-h2 { margin-top: 0; }
-button { padding: 6px 10px; margin: 4px 0; }
-input, select { padding: 6px; margin: 4px 0; }
+body { font-family: Arial, sans-serif; margin: 20px; max-width: 900px; background:#fffafc; }
+h1 { margin-bottom: 10px; color:#b03060; }
+section { margin-bottom: 25px; padding: 15px; border-radius: 14px; }
+
+/* Freundliche Farbtöne */
+section:nth-of-type(1) { background:#ffe4ec; }
+section:nth-of-type(2) { background:#ffd6e7; }
+section:nth-of-type(3) { background:#ffeaf3; }
+section:nth-of-type(4) { background:#fff0f6; }
+section:nth-of-type(5) { background:#ffe4ec; }
+
+h2 { margin-top: 0; color:#8b1e4f; }
+button { padding: 6px 10px; margin: 4px 0; border-radius:8px; border:none; background:#d63384; color:white; }
+button:hover { opacity:0.85; }
+input, select { padding: 6px; margin: 4px 0; border-radius:6px; border:1px solid #ccc; }
 ul { list-style: none; padding: 0; }
 li { margin: 4px 0; }
-.recipe-card { border: 1px solid #ccc; padding: 10px; border-radius: 10px; margin-bottom: 10px; }
+.recipe-card { border: 1px solid #f8c2d8; padding: 10px; border-radius: 12px; margin-bottom: 10px; background:white; }
 .recipe-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
 .recipe-header h3 { margin: 0; }
-.delete-btn { margin-left: 10px; color: red; }
+.delete-btn { margin-left: 10px; background:#ff6b81; }
 .collapsed { display: none; }
 </style>
 </head>
@@ -30,17 +38,9 @@ li { margin: 4px 0; }
 <div id="weekPlan"></div>
 </section>
 
-<!-- Einkaufsliste jetzt ÜBER den Rezepten -->
 <section>
 <h2>Einkaufsliste</h2>
 <ul id="shoppingList"></ul>
-</section>
-
-<section>
-<h2>Rezepte importieren (Excel / CSV)</h2>
-<input type="file" id="csvFile" accept=".csv">
-<button id="importCsvBtn">Import starten</button>
-<p>Format: Gericht, Zutat, Menge, Einheit (Komma ODER Semikolon)</p>
 </section>
 
 <section>
@@ -139,7 +139,7 @@ function renderRecipes() {
     header.appendChild(deleteRecipeBtn);
 
     const content = document.createElement("div");
-    content.className = "collapsed"; // Standard: zugeklappt
+    content.className = "collapsed";
 
     const ul = document.createElement("ul");
     recipe.ingredients.forEach((ing, ingIndex) => {
@@ -213,6 +213,7 @@ function renderShopping() {
     });
   });
 
+  // Extras IMMER hinzufügen
   data.extras.forEach(e => {
     const key = e.name + "|" + e.unit;
     if (!totals[key]) totals[key] = { ...e };
@@ -247,6 +248,26 @@ function renderShopping() {
   });
 }
 
+// Extras robust machen (Einheit optional, Menge Standard 1)
+document.getElementById("addExtraBtn").onclick = () => {
+  const name = document.getElementById("extraName").value.trim();
+  let amount = Number(document.getElementById("extraAmount").value);
+  const unit = document.getElementById("extraUnit").value.trim() || "Stück";
+
+  if (!name) return;
+  if (!amount || amount <= 0) amount = 1;
+
+  data.extras.push({ name, amount, unit });
+
+  document.getElementById("extraName").value = "";
+  document.getElementById("extraAmount").value = "";
+  document.getElementById("extraUnit").value = "";
+
+  save();
+  renderExtras();
+  renderShopping();
+};
+
 renderWeek();
 renderRecipes();
 renderExtras();
@@ -255,6 +276,3 @@ renderShopping();
 
 </body>
 </html>
-
-
-
