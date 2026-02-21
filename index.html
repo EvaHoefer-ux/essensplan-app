@@ -1,31 +1,23 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Essensplan</title>
 <style>
-body { font-family: Arial, sans-serif; margin: 20px; max-width: 900px; background:#fffafc; }
-h1 { margin-bottom: 10px; color:#b03060; }
-section { margin-bottom: 25px; padding: 15px; border-radius: 14px; }
-
-/* Freundliche Farbtöne */
-section:nth-of-type(1) { background:#ffe4ec; }
-section:nth-of-type(2) { background:#ffd6e7; }
-section:nth-of-type(3) { background:#ffeaf3; }
-section:nth-of-type(4) { background:#fff0f6; }
-section:nth-of-type(5) { background:#ffe4ec; }
-
-h2 { margin-top: 0; color:#8b1e4f; }
-button { padding: 6px 10px; margin: 4px 0; border-radius:8px; border:none; background:#d63384; color:white; }
-button:hover { opacity:0.85; }
-input, select { padding: 6px; margin: 4px 0; border-radius:6px; border:1px solid #ccc; }
+body { font-family: Arial, sans-serif; margin: 20px; max-width: 900px; background:#f4f8ff; }
+h1 { margin-bottom: 10px; color:#1e3a8a; }
+section { margin-bottom: 25px; padding: 15px; border-radius: 14px; background:white; box-shadow:0 4px 10px rgba(0,0,0,0.05); }
+h2 { margin-top: 0; color:#1d4ed8; }
+button { padding: 7px 12px; margin: 4px 0; border-radius:8px; border:none; background:#2563eb; color:white; cursor:pointer; }
+button:hover { background:#1d4ed8; }
+input, select { padding: 6px; margin: 4px 0; border-radius:6px; border:1px solid #cbd5e1; }
 ul { list-style: none; padding: 0; }
-li { margin: 4px 0; }
-.recipe-card { border: 1px solid #f8c2d8; padding: 10px; border-radius: 12px; margin-bottom: 10px; background:white; }
+li { margin: 6px 0; }
+.recipe-card { border: 1px solid #dbeafe; padding: 10px; border-radius: 12px; margin-bottom: 10px; }
 .recipe-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
 .recipe-header h3 { margin: 0; }
-.delete-btn { margin-left: 10px; background:#ff6b81; }
+.delete-btn { background:#ef4444; }
 .collapsed { display: none; }
 </style>
 </head>
@@ -33,30 +25,42 @@ li { margin: 4px 0; }
 
 <h1>Essensplan</h1>
 
+<!-- 1. WOCHENPLAN -->
 <section>
 <h2>Wochenplan</h2>
 <div id="weekPlan"></div>
 </section>
 
+<!-- 2. ZUSÄTZLICHE EINKÄUFE -->
 <section>
-<h2>Einkaufsliste</h2>
-<ul id="shoppingList"></ul>
-</section>
-
-<section>
-<h2>Rezepte</h2>
-<input id="newRecipeName" placeholder="Neues Rezept">
-<button id="addRecipeBtn">Rezept hinzufügen</button>
-<div id="recipes"></div>
-</section>
-
-<section>
-<h2>Zusätzliche Einkäufe (z.B. Frühstück)</h2>
+<h2>Zusätzliche Einkäufe</h2>
 <input id="extraName" placeholder="Zutat">
 <input id="extraAmount" type="number" placeholder="Menge" style="width:80px;">
 <input id="extraUnit" placeholder="Einheit" style="width:80px;">
 <button id="addExtraBtn">Hinzufügen</button>
 <ul id="extraList"></ul>
+</section>
+
+<!-- 3. EINKAUFSLISTE -->
+<section>
+<h2>Einkaufsliste</h2>
+<ul id="shoppingList"></ul>
+</section>
+
+<!-- CSV IMPORT bleibt vor Rezepten sinnvoll -->
+<section>
+<h2>Rezepte importieren (Excel / CSV)</h2>
+<input type="file" id="csvFile" accept=".csv">
+<button id="importCsvBtn">Import starten</button>
+<p>Format: Gericht;Zutat;Menge;Einheit (Semikolon ODER Komma)</p>
+</section>
+
+<!-- 4. REZEPTE -->
+<section>
+<h2>Rezepte</h2>
+<input id="newRecipeName" placeholder="Neues Rezept">
+<button id="addRecipeBtn">Rezept hinzufügen</button>
+<div id="recipes"></div>
 </section>
 
 <script>
@@ -213,7 +217,6 @@ function renderShopping() {
     });
   });
 
-  // Extras IMMER hinzufügen
   data.extras.forEach(e => {
     const key = e.name + "|" + e.unit;
     if (!totals[key]) totals[key] = { ...e };
@@ -233,7 +236,7 @@ function renderShopping() {
 
     if (checkbox.checked) {
       span.style.textDecoration = "line-through";
-      span.style.color = "#888";
+      span.style.color = "#64748b";
     }
 
     checkbox.onchange = () => {
@@ -248,10 +251,62 @@ function renderShopping() {
   });
 }
 
-// Extras robust machen (Einheit optional, Menge Standard 1)
+// CSV Import
+
+document.getElementById("importCsvBtn").onclick = () => {
+  const file = document.getElementById("csvFile").files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const lines = text.split(/\r?\n/);
+    if (lines.length < 2) return;
+
+    const separator = lines[0].includes(";") ? ";" : ",";
+
+    const recipesMap = {};
+
+    lines.slice(1).forEach(line => {
+      if (!line.trim()) return;
+      const parts = line.split(separator);
+      if (parts.length < 4) return;
+
+      const gericht = parts[0].trim();
+      const zutat = parts[1].trim();
+      const menge = parseFloat(parts[2].replace(",", ".")) || 1;
+      const einheit = parts[3].trim() || "Stück";
+
+      if (!recipesMap[gericht]) recipesMap[gericht] = [];
+
+      recipesMap[gericht].push({
+        name: zutat,
+        amount: menge,
+        unit: einheit
+      });
+    });
+
+    Object.entries(recipesMap).forEach(([name, ingredients]) => {
+      const exists = data.recipes.find(r => r.name === name);
+      if (!exists) data.recipes.push({ name, ingredients });
+    });
+
+    save();
+    renderRecipes();
+    renderWeek();
+    renderShopping();
+    alert("Import abgeschlossen");
+  };
+
+  reader.readAsText(file);
+};
+
+// Extras hinzufügen
+
 document.getElementById("addExtraBtn").onclick = () => {
   const name = document.getElementById("extraName").value.trim();
-  let amount = Number(document.getElementById("extraAmount").value);
+  let amount = parseFloat(document.getElementById("extraAmount").value);
   const unit = document.getElementById("extraUnit").value.trim() || "Stück";
 
   if (!name) return;
