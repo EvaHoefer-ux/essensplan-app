@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -19,6 +19,8 @@ li { margin: 6px 0; }
 .recipe-header h3 { margin: 0; }
 .delete-btn { background:#ef4444; }
 .collapsed { display: none; }
+.add-row { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+.add-row input { flex:1; min-width:90px; }
 </style>
 </head>
 <body>
@@ -51,7 +53,6 @@ li { margin: 6px 0; }
 <div id="recipes"></div>
 </section>
 
-<!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -74,7 +75,6 @@ const days = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","S
 
 let data = { recipes: [], plan: {}, extras: [], shoppingState: {} };
 
-// 🔄 LIVE SYNC
 onSnapshot(dataRef, (snap) => {
   if (snap.exists()) {
     data = snap.data();
@@ -132,6 +132,8 @@ function renderRecipes() {
   container.innerHTML = "";
 
   data.recipes.forEach((recipe, recipeIndex) => {
+    if (!recipe.ingredients) recipe.ingredients = [];
+
     const card = document.createElement("div");
     card.className = "recipe-card";
 
@@ -157,7 +159,7 @@ function renderRecipes() {
     content.className = "collapsed";
 
     const ul = document.createElement("ul");
-    recipe.ingredients?.forEach((ing, ingIndex) => {
+    recipe.ingredients.forEach((ing, ingIndex) => {
       const li = document.createElement("li");
       li.textContent = `${ing.name} – ${ing.amount} ${ing.unit}`;
 
@@ -173,7 +175,41 @@ function renderRecipes() {
       ul.appendChild(li);
     });
 
+    // ➕ Zutaten hinzufügen
+    const addRow = document.createElement("div");
+    addRow.className = "add-row";
+
+    const nameInput = document.createElement("input");
+    nameInput.placeholder = "Zutat";
+
+    const amountInput = document.createElement("input");
+    amountInput.type = "number";
+    amountInput.placeholder = "Menge";
+
+    const unitInput = document.createElement("input");
+    unitInput.placeholder = "Einheit";
+
+    const addBtn = document.createElement("button");
+    addBtn.textContent = "+";
+
+    addBtn.onclick = async () => {
+      const n = nameInput.value.trim();
+      let a = parseFloat(amountInput.value);
+      const u = unitInput.value.trim() || "Stück";
+      if (!n) return;
+      if (!a || a <= 0) a = 1;
+
+      recipe.ingredients.push({ name:n, amount:a, unit:u });
+      await save();
+    };
+
+    addRow.appendChild(nameInput);
+    addRow.appendChild(amountInput);
+    addRow.appendChild(unitInput);
+    addRow.appendChild(addBtn);
+
     content.appendChild(ul);
+    content.appendChild(addRow);
 
     header.onclick = () => content.classList.toggle("collapsed");
 
