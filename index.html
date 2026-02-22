@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -25,13 +25,11 @@ li { margin: 6px 0; }
 
 <h1>Essensplan</h1>
 
-<!-- 1. WOCHENPLAN -->
 <section>
 <h2>Wochenplan</h2>
 <div id="weekPlan"></div>
 </section>
 
-<!-- 2. ZUSÄTZLICHE EINKÄUFE -->
 <section>
 <h2>Zusätzliche Einkäufe</h2>
 <input id="extraName" placeholder="Zutat">
@@ -41,21 +39,11 @@ li { margin: 6px 0; }
 <ul id="extraList"></ul>
 </section>
 
-<!-- 3. EINKAUFSLISTE -->
 <section>
 <h2>Einkaufsliste</h2>
 <ul id="shoppingList"></ul>
 </section>
 
-<!-- CSV IMPORT bleibt vor Rezepten sinnvoll -->
-<section>
-<h2>Rezepte importieren (Excel / CSV)</h2>
-<input type="file" id="csvFile" accept=".csv">
-<button id="importCsvBtn">Import starten</button>
-<p>Format: Gericht;Zutat;Menge;Einheit (Semikolon ODER Komma)</p>
-</section>
-
-<!-- 4. REZEPTE -->
 <section>
 <h2>Rezepte</h2>
 <input id="newRecipeName" placeholder="Neues Rezept">
@@ -63,18 +51,48 @@ li { margin: 6px 0; }
 <div id="recipes"></div>
 </section>
 
-<script>
-const days = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-let data = JSON.parse(localStorage.getItem("mealData")) || {
-  recipes: [],
-  plan: {},
-  extras: [],
-  shoppingState: {}
+const firebaseConfig = {
+  apiKey: "AIzaSyDpjH6LT6hG2Md_B3NWZiNhLarPXGxsrfM",
+  authDomain: "einkaufsplan-22030.firebaseapp.com",
+  projectId: "einkaufsplan-22030",
+  storageBucket: "einkaufsplan-22030.firebasestorage.app",
+  messagingSenderId: "80931074953",
+  appId: "1:80931074953:web:d9137d523329ee6c6d2758",
+  measurementId: "G-828SQ93WP9"
 };
 
-function save() {
-  localStorage.setItem("mealData", JSON.stringify(data));
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const dataRef = doc(db, "shared", "mealData");
+
+const days = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
+
+let data = { recipes: [], plan: {}, extras: [], shoppingState: {} };
+
+// 🔄 LIVE SYNC
+onSnapshot(dataRef, (snap) => {
+  if (snap.exists()) {
+    data = snap.data();
+    renderAll();
+  } else {
+    save();
+  }
+});
+
+async function save() {
+  await setDoc(dataRef, data);
+}
+
+function renderAll(){
+  renderWeek();
+  renderRecipes();
+  renderExtras();
+  renderShopping();
 }
 
 function renderWeek() {
@@ -94,14 +112,13 @@ function renderWeek() {
       const opt = document.createElement("option");
       opt.value = r.name;
       opt.textContent = r.name;
-      if (data.plan[day] === r.name) opt.selected = true;
+      if (data.plan?.[day] === r.name) opt.selected = true;
       select.appendChild(opt);
     });
 
-    select.onchange = () => {
+    select.onchange = async () => {
       data.plan[day] = select.value;
-      save();
-      renderShopping();
+      await save();
     };
 
     div.innerHTML = `<strong>${day}:</strong> `;
@@ -127,16 +144,10 @@ function renderRecipes() {
     const deleteRecipeBtn = document.createElement("button");
     deleteRecipeBtn.textContent = "Löschen";
     deleteRecipeBtn.className = "delete-btn";
-    deleteRecipeBtn.onclick = (e) => {
+    deleteRecipeBtn.onclick = async (e) => {
       e.stopPropagation();
       data.recipes.splice(recipeIndex, 1);
-      Object.keys(data.plan).forEach(day => {
-        if (data.plan[day] === recipe.name) data.plan[day] = "";
-      });
-      save();
-      renderRecipes();
-      renderWeek();
-      renderShopping();
+      await save();
     };
 
     header.appendChild(title);
@@ -146,18 +157,16 @@ function renderRecipes() {
     content.className = "collapsed";
 
     const ul = document.createElement("ul");
-    recipe.ingredients.forEach((ing, ingIndex) => {
+    recipe.ingredients?.forEach((ing, ingIndex) => {
       const li = document.createElement("li");
       li.textContent = `${ing.name} – ${ing.amount} ${ing.unit}`;
 
       const delBtn = document.createElement("button");
       delBtn.textContent = "x";
       delBtn.className = "delete-btn";
-      delBtn.onclick = () => {
+      delBtn.onclick = async () => {
         recipe.ingredients.splice(ingIndex, 1);
-        save();
-        renderRecipes();
-        renderShopping();
+        await save();
       };
 
       li.appendChild(delBtn);
@@ -166,9 +175,7 @@ function renderRecipes() {
 
     content.appendChild(ul);
 
-    header.onclick = () => {
-      content.classList.toggle("collapsed");
-    };
+    header.onclick = () => content.classList.toggle("collapsed");
 
     card.appendChild(header);
     card.appendChild(content);
@@ -187,11 +194,9 @@ function renderExtras() {
     const delBtn = document.createElement("button");
     delBtn.textContent = "x";
     delBtn.className = "delete-btn";
-    delBtn.onclick = () => {
+    delBtn.onclick = async () => {
       data.extras.splice(index, 1);
-      save();
-      renderExtras();
-      renderShopping();
+      await save();
     };
 
     li.appendChild(delBtn);
@@ -205,12 +210,12 @@ function renderShopping() {
 
   const totals = {};
 
-  Object.values(data.plan).forEach(recipeName => {
+  Object.values(data.plan || {}).forEach(recipeName => {
     if (!recipeName) return;
     const recipe = data.recipes.find(r => r.name === recipeName);
     if (!recipe) return;
 
-    recipe.ingredients.forEach(ing => {
+    recipe.ingredients?.forEach(ing => {
       const key = ing.name + "|" + ing.unit;
       if (!totals[key]) totals[key] = { ...ing };
       else totals[key].amount += ing.amount;
@@ -234,15 +239,9 @@ function renderShopping() {
     const span = document.createElement("span");
     span.textContent = ` ${item.name} – ${item.amount} ${item.unit}`;
 
-    if (checkbox.checked) {
-      span.style.textDecoration = "line-through";
-      span.style.color = "#64748b";
-    }
-
-    checkbox.onchange = () => {
+    checkbox.onchange = async () => {
       data.shoppingState[key] = checkbox.checked;
-      save();
-      renderShopping();
+      await save();
     };
 
     li.appendChild(checkbox);
@@ -251,60 +250,9 @@ function renderShopping() {
   });
 }
 
-// CSV Import
-
-document.getElementById("importCsvBtn").onclick = () => {
-  const file = document.getElementById("csvFile").files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-
-  reader.onload = function(e) {
-    const text = e.target.result;
-    const lines = text.split(/\r?\n/);
-    if (lines.length < 2) return;
-
-    const separator = lines[0].includes(";") ? ";" : ",";
-
-    const recipesMap = {};
-
-    lines.slice(1).forEach(line => {
-      if (!line.trim()) return;
-      const parts = line.split(separator);
-      if (parts.length < 4) return;
-
-      const gericht = parts[0].trim();
-      const zutat = parts[1].trim();
-      const menge = parseFloat(parts[2].replace(",", ".")) || 1;
-      const einheit = parts[3].trim() || "Stück";
-
-      if (!recipesMap[gericht]) recipesMap[gericht] = [];
-
-      recipesMap[gericht].push({
-        name: zutat,
-        amount: menge,
-        unit: einheit
-      });
-    });
-
-    Object.entries(recipesMap).forEach(([name, ingredients]) => {
-      const exists = data.recipes.find(r => r.name === name);
-      if (!exists) data.recipes.push({ name, ingredients });
-    });
-
-    save();
-    renderRecipes();
-    renderWeek();
-    renderShopping();
-    alert("Import abgeschlossen");
-  };
-
-  reader.readAsText(file);
-};
-
 // Extras hinzufügen
 
-document.getElementById("addExtraBtn").onclick = () => {
+document.getElementById("addExtraBtn").onclick = async () => {
   const name = document.getElementById("extraName").value.trim();
   let amount = parseFloat(document.getElementById("extraAmount").value);
   const unit = document.getElementById("extraUnit").value.trim() || "Stück";
@@ -318,15 +266,19 @@ document.getElementById("addExtraBtn").onclick = () => {
   document.getElementById("extraAmount").value = "";
   document.getElementById("extraUnit").value = "";
 
-  save();
-  renderExtras();
-  renderShopping();
+  await save();
 };
 
-renderWeek();
-renderRecipes();
-renderExtras();
-renderShopping();
+// Rezept hinzufügen
+
+document.getElementById("addRecipeBtn").onclick = async () => {
+  const name = document.getElementById("newRecipeName").value.trim();
+  if (!name) return;
+  data.recipes.push({ name, ingredients: [] });
+  document.getElementById("newRecipeName").value = "";
+  await save();
+};
+
 </script>
 
 </body>
