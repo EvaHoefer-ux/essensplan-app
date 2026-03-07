@@ -19,13 +19,13 @@ li { margin: 6px 0; }
 .recipe-header h3 { margin: 0; }
 .delete-btn { background:#ef4444; }
 .collapsed { display: none; }
-.add-row { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
-.add-row input { flex:1; min-width:90px; }
+.status { font-size:12px; color:#059669; margin-bottom:10px; }
 </style>
 </head>
 <body>
 
 <h1>Essensplan</h1>
+<div id="status" class="status">Verbinde…</div>
 
 <section>
 <h2>Wochenplan</h2>
@@ -44,6 +44,12 @@ li { margin: 6px 0; }
 <section>
 <h2>Einkaufsliste</h2>
 <ul id="shoppingList"></ul>
+</section>
+
+<section>
+<h2>Rezepte importieren (CSV)</h2>
+<input type="file" id="csvFile" accept=".csv">
+<button id="importCsvBtn">Import starten</button>
 </section>
 
 <section>
@@ -75,20 +81,19 @@ const days = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","S
 
 let data = { recipes: [], plan: {}, extras: [], shoppingState: {} };
 
+const statusEl = document.getElementById("status");
+
 onSnapshot(dataRef, (snap) => {
-  if (snap.exists()) {
-    data = snap.data();
-    renderAll();
-  } else {
-    save();
-  }
+  if (snap.exists()) data = snap.data();
+  statusEl.textContent = "Firebase Sync aktiv";
+  renderAll();
 });
 
-async function save() {
-  await setDoc(dataRef, data);
+function save() {
+  setDoc(dataRef, data);
 }
 
-function renderAll(){
+function renderAll() {
   renderWeek();
   renderRecipes();
   renderExtras();
@@ -112,13 +117,13 @@ function renderWeek() {
       const opt = document.createElement("option");
       opt.value = r.name;
       opt.textContent = r.name;
-      if (data.plan?.[day] === r.name) opt.selected = true;
+      if (data.plan[day] === r.name) opt.selected = true;
       select.appendChild(opt);
     });
 
-    select.onchange = async () => {
+    select.onchange = () => {
       data.plan[day] = select.value;
-      await save();
+      save();
     };
 
     div.innerHTML = `<strong>${day}:</strong> `;
@@ -132,8 +137,6 @@ function renderRecipes() {
   container.innerHTML = "";
 
   data.recipes.forEach((recipe, recipeIndex) => {
-    if (!recipe.ingredients) recipe.ingredients = [];
-
     const card = document.createElement("div");
     card.className = "recipe-card";
 
@@ -146,10 +149,10 @@ function renderRecipes() {
     const deleteRecipeBtn = document.createElement("button");
     deleteRecipeBtn.textContent = "Löschen";
     deleteRecipeBtn.className = "delete-btn";
-    deleteRecipeBtn.onclick = async (e) => {
+    deleteRecipeBtn.onclick = (e) => {
       e.stopPropagation();
       data.recipes.splice(recipeIndex, 1);
-      await save();
+      save();
     };
 
     header.appendChild(title);
@@ -166,50 +169,38 @@ function renderRecipes() {
       const delBtn = document.createElement("button");
       delBtn.textContent = "x";
       delBtn.className = "delete-btn";
-      delBtn.onclick = async () => {
+      delBtn.onclick = () => {
         recipe.ingredients.splice(ingIndex, 1);
-        await save();
+        save();
       };
 
       li.appendChild(delBtn);
       ul.appendChild(li);
     });
 
-    // ➕ Zutaten hinzufügen
-    const addRow = document.createElement("div");
-    addRow.className = "add-row";
+    // Zutaten hinzufügen
+    const addDiv = document.createElement("div");
+    addDiv.innerHTML = `
+      <input placeholder="Zutat" class="ing-name">
+      <input type="number" placeholder="Menge" class="ing-amount" style="width:80px;">
+      <input placeholder="Einheit" class="ing-unit" style="width:80px;">
+      <button class="add-ing">+</button>
+    `;
 
-    const nameInput = document.createElement("input");
-    nameInput.placeholder = "Zutat";
+    addDiv.querySelector(".add-ing").onclick = () => {
+      const name = addDiv.querySelector(".ing-name").value.trim();
+      let amount = parseFloat(addDiv.querySelector(".ing-amount").value);
+      const unit = addDiv.querySelector(".ing-unit").value.trim() || "Stück";
 
-    const amountInput = document.createElement("input");
-    amountInput.type = "number";
-    amountInput.placeholder = "Menge";
+      if (!name) return;
+      if (!amount || amount <= 0) amount = 1;
 
-    const unitInput = document.createElement("input");
-    unitInput.placeholder = "Einheit";
-
-    const addBtn = document.createElement("button");
-    addBtn.textContent = "+";
-
-    addBtn.onclick = async () => {
-      const n = nameInput.value.trim();
-      let a = parseFloat(amountInput.value);
-      const u = unitInput.value.trim() || "Stück";
-      if (!n) return;
-      if (!a || a <= 0) a = 1;
-
-      recipe.ingredients.push({ name:n, amount:a, unit:u });
-      await save();
+      recipe.ingredients.push({ name, amount, unit });
+      save();
     };
 
-    addRow.appendChild(nameInput);
-    addRow.appendChild(amountInput);
-    addRow.appendChild(unitInput);
-    addRow.appendChild(addBtn);
-
     content.appendChild(ul);
-    content.appendChild(addRow);
+    content.appendChild(addDiv);
 
     header.onclick = () => content.classList.toggle("collapsed");
 
@@ -230,9 +221,9 @@ function renderExtras() {
     const delBtn = document.createElement("button");
     delBtn.textContent = "x";
     delBtn.className = "delete-btn";
-    delBtn.onclick = async () => {
+    delBtn.onclick = () => {
       data.extras.splice(index, 1);
-      await save();
+      save();
     };
 
     li.appendChild(delBtn);
@@ -246,12 +237,12 @@ function renderShopping() {
 
   const totals = {};
 
-  Object.values(data.plan || {}).forEach(recipeName => {
+  Object.values(data.plan).forEach(recipeName => {
     if (!recipeName) return;
     const recipe = data.recipes.find(r => r.name === recipeName);
     if (!recipe) return;
 
-    recipe.ingredients?.forEach(ing => {
+    recipe.ingredients.forEach(ing => {
       const key = ing.name + "|" + ing.unit;
       if (!totals[key]) totals[key] = { ...ing };
       else totals[key].amount += ing.amount;
@@ -275,9 +266,14 @@ function renderShopping() {
     const span = document.createElement("span");
     span.textContent = ` ${item.name} – ${item.amount} ${item.unit}`;
 
-    checkbox.onchange = async () => {
+    if (checkbox.checked) {
+      span.style.textDecoration = "line-through";
+      span.style.color = "#64748b";
+    }
+
+    checkbox.onchange = () => {
       data.shoppingState[key] = checkbox.checked;
-      await save();
+      save();
     };
 
     li.appendChild(checkbox);
@@ -286,9 +282,20 @@ function renderShopping() {
   });
 }
 
+// Rezept hinzufügen
+
+document.getElementById("addRecipeBtn").onclick = () => {
+  const name = document.getElementById("newRecipeName").value.trim();
+  if (!name) return;
+
+  data.recipes.push({ name, ingredients: [] });
+  document.getElementById("newRecipeName").value = "";
+  save();
+};
+
 // Extras hinzufügen
 
-document.getElementById("addExtraBtn").onclick = async () => {
+document.getElementById("addExtraBtn").onclick = () => {
   const name = document.getElementById("extraName").value.trim();
   let amount = parseFloat(document.getElementById("extraAmount").value);
   const unit = document.getElementById("extraUnit").value.trim() || "Stück";
@@ -302,19 +309,51 @@ document.getElementById("addExtraBtn").onclick = async () => {
   document.getElementById("extraAmount").value = "";
   document.getElementById("extraUnit").value = "";
 
-  await save();
+  save();
 };
 
-// Rezept hinzufügen
+// CSV Import
 
-document.getElementById("addRecipeBtn").onclick = async () => {
-  const name = document.getElementById("newRecipeName").value.trim();
-  if (!name) return;
-  data.recipes.push({ name, ingredients: [] });
-  document.getElementById("newRecipeName").value = "";
-  await save();
+document.getElementById("importCsvBtn").onclick = () => {
+  const file = document.getElementById("csvFile").files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const lines = text.split(/\r?\n/);
+    if (lines.length < 2) return;
+
+    const separator = lines[0].includes(";") ? ";" : ",";
+    const recipesMap = {};
+
+    lines.slice(1).forEach(line => {
+      if (!line.trim()) return;
+      const parts = line.split(separator);
+      if (parts.length < 4) return;
+
+      const gericht = parts[0].trim();
+      const zutat = parts[1].trim();
+      const menge = parseFloat(parts[2].replace(",", ".")) || 1;
+      const einheit = parts[3].trim() || "Stück";
+
+      if (!recipesMap[gericht]) recipesMap[gericht] = [];
+
+      recipesMap[gericht].push({ name: zutat, amount: menge, unit: einheit });
+    });
+
+    Object.entries(recipesMap).forEach(([name, ingredients]) => {
+      const exists = data.recipes.find(r => r.name === name);
+      if (!exists) data.recipes.push({ name, ingredients });
+    });
+
+    save();
+    alert("Import abgeschlossen");
+  };
+
+  reader.readAsText(file);
 };
-
 </script>
 
 </body>
